@@ -569,28 +569,33 @@ loadGame();
 </script>
   
 <script>
+
+<script>
 (function () {
-  const card = document.getElementById("rouletteCard");
-  if (!card) return;
+  const toggle = document.getElementById("tasksToggle");
+  const extras = document.querySelectorAll(".extra-task");
 
-  function openRoulette() {
-    alert("🎁 Бесплатная рулетка\n\nСкоро здесь можно будет крутить рулетку и получать подарки!");
-  }
+  if (!toggle) return;
 
-  card.addEventListener("click", function (event) {
-    if (event.target.closest("button")) {
-      event.stopPropagation();
-    }
-    openRoulette();
+  extras.forEach(function (task) {
+    task.hidden = true;
   });
 
-  card.addEventListener("keydown", function (event) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openRoulette();
-    }
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.textContent = "Все";
+
+  toggle.addEventListener("click", function () {
+    const expanded = toggle.getAttribute("aria-expanded") === "true";
+
+    extras.forEach(function (task) {
+      task.hidden = expanded;
+    });
+
+    toggle.setAttribute("aria-expanded", String(!expanded));
+    toggle.textContent = expanded ? "Все" : "Свернуть";
   });
 })();
+</script>
 </script>
   
 <script>
