@@ -564,10 +564,9 @@ boxBtn.addEventListener("click", () =>
   action("/api/open-box", "🎁 Коробка открыта!")
 );
 
+
 loadGame();
 </script>
-  
-<script>
 
 <script>
 (function () {
@@ -595,26 +594,5 @@ loadGame();
   });
 })();
 </script>
-</script>
-  
-<script>
-(function () {
-  const toggle = document.getElementById("tasksToggle");
-  const extras = document.querySelectorAll(".extra-task");
-  if (!toggle) return;
-
-  toggle.addEventListener("click", function () {
-    const expanded = toggle.getAttribute("aria-expanded") === "true";
-
-    extras.forEach(function (task) {
-      task.hidden = expanded;
-    });
-
-    toggle.setAttribute("aria-expanded", String(!expanded));
-    toggle.textContent = expanded ? "Все" : "Свернуть";
-  });
-})();
-</script>
 </body>
 </html>
-
