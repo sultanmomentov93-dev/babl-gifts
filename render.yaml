@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: babl-gifts
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_PATH
+        value: babl_gifts.db
+      - key: ALLOW_DEMO_AUTH
+        value: "false"
