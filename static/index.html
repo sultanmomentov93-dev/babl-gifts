@@ -239,7 +239,19 @@
 
 .tasks-heading h2 {
   margin: 0;
+
+.tasks-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.tasks-heading h2 {
+  margin: 0;
   font-size: 18px;
+  line-height: 1.2;
   font-weight: 600;
   color: #fff;
 }
@@ -247,18 +259,18 @@
 .tasks-show-all {
   order: 2;
   margin-left: auto;
+  margin-right: 0;
   padding: 0;
   border: none;
   background: transparent;
   color: #fff;
   font-family: inherit;
-  font-size: 18px;
+  font-size: 15px;
+  line-height: 1.2;
   font-weight: 600;
   cursor: pointer;
-  outline: none;
   box-shadow: none;
 }
-
 .tasks-show-all:focus,
 .tasks-show-all:active {
   outline: none;
