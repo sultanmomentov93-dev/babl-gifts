@@ -8,11 +8,20 @@ html
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 20px 16px 35px;
-      font-family: Arial, sans-serif;
-      color: #fff; min-height: 100vh;
-      background: radial-gradient(circle at top,#246b66,#10265c 55%,#10172e);
+    
+  body {
+    margin: 0;
+    padding: 20px 16px 35px;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(10, 18, 45, 0.25), rgba(10, 18, 45, 0.55)),
+      url("/static/background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     }
     .app { max-width: 480px; margin: auto; }
     header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
