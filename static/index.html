@@ -223,20 +223,18 @@
   .roulette-art { flex-basis: 100px; transform: scale(.9); }
 }
     
+
 .tasks-section {
   margin: 22px 0;
   color: #fff;
 }
 
-
 .tasks-heading {
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   margin-bottom: 12px;
-  gap: 0;
 }
 
 .tasks-heading h2 {
@@ -250,12 +248,13 @@
 
 .tasks-show-all {
   display: block;
+  width: auto;
   flex: 0 0 auto;
   margin: 0 0 0 auto;
   padding: 0;
-  border: 0 !important;
+  border: none !important;
   border-radius: 0;
-  background: none !important;
+  background: transparent !important;
   color: #fff;
   font-family: inherit;
   font-size: 16px;
@@ -266,25 +265,13 @@
   appearance: none;
   -webkit-appearance: none;
 }
-.tasks-show-all:focus,
-.tasks-show-all:active {
-  outline: none;
-  box-shadow: none;
-}
-  padding: 7px 13px;
-  border: 1px solid #6bdcff;
-  border-radius: 12px;
-  background: #172d70;
-  color: #a9eeff;
-  font-size: 15px;
-  font-weight: bold;
-  cursor: pointer;
-}
+
 .tasks-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+
 .task-card {
   display: flex;
   align-items: center;
@@ -298,6 +285,7 @@
   box-shadow: inset 0 0 14px #7bafff12;
   color: #fff;
 }
+
 .task-icon {
   flex: 0 0 46px;
   width: 46px;
@@ -309,20 +297,24 @@
   background: #354b89;
   font-size: 26px;
 }
+
 .task-info {
   flex: 1;
   min-width: 0;
 }
+
 .task-name {
   font-size: 15px;
   font-weight: bold;
   margin-bottom: 4px;
 }
+
 .task-description {
   font-size: 12px;
   line-height: 1.4;
   color: #c4d9ff;
 }
+
 .task-arrow {
   color: #9ceaff;
   font-size: 23px;
