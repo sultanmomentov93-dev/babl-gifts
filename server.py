@@ -126,3 +126,43 @@ def open_box(authorization: Optional[str] = Header(default=None)):
 @app.get("/api/health")
 def health():
     return {"ok": True, "app": "Babl Gifts"}
+
+
+from fastapi import Request
+import httpx
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    update = await request.json()
+    message = update.get("message", {})
+    text = message.get("text", "")
+    chat = message.get("chat", {})
+    chat_id = chat.get("id")
+
+    if text == "/start" and chat_id:
+        keyboard = {
+            "inline_keyboard": [[
+                {
+                    "text": "🎁 Открыть Бабл Подарки",
+                    "web_app": {"url": "https://babl-gifts.onrender.com"}
+                }
+            ]]
+        }
+        payload = {
+            "chat_id": chat_id,
+            "text": (
+                "Привет! 👋 Добро пожаловать в «Бабл Подарки»!\n\n"
+                "Открывай виртуальные коробки, собирай подарки "
+                "и забирай ежедневные монеты. 🎁"
+            ),
+            "reply_markup": keyboard
+        }
+
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json=payload
+            )
+            response.raise_for_status()
+
+    return {"ok": True}
