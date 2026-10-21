@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Бабл Gifts</title>
+  <title>Бабл Подарки</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -11,23 +12,26 @@
       margin: 0; padding: 20px 16px 35px;
       font-family: Arial, sans-serif;
       color: #fff; min-height: 100vh;
-      background: linear-gradient(160deg,#10265c,#29145a,#10172e);
+      background: radial-gradient(circle at top,#246b66,#10265c 55%,#10172e);
     }
     .app { max-width: 480px; margin: auto; }
-    header { display:flex; justify-content:space-between; align-items:center; }
-    h1 { font-size: 26px; margin: 8px 0; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    h1 { font-size: 24px; margin: 8px 0; }
     .coins {
       background:#ffffff18; border:1px solid #ffffff30;
       border-radius:18px; padding:13px; margin:20px 0;
       display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
     }
+    .balance { display:flex; align-items:center; gap:8px; }
+    .bubble-icon { width:28px; height:28px; object-fit:contain; vertical-align:middle; }
     .hero {
       text-align:center; padding:22px 12px;
       border-radius:25px;
-      background:linear-gradient(145deg,#426cf0,#783ee8);
+      background:linear-gradient(145deg,#237c92,#426cf0,#783ee8);
       box-shadow:0 12px 35px #0004;
     }
-    .bubble { font-size:100px; line-height:1.3; }
+    .hero-bubble { width:112px; height:112px; object-fit:contain; }
     .hero h2 { margin:8px 0; }
     .muted { color:#d9e1ff; font-size:14px; }
     .section-title { margin:24px 0 12px; font-size:19px; }
@@ -44,6 +48,7 @@
     button:disabled { opacity:.55; }
     .gift { display:flex; align-items:center; gap:14px; }
     .gift-icon { font-size:40px; }
+    .price { display:flex; align-items:center; gap:5px; margin-top:6px; }
     #message { min-height:22px; margin-top:14px; font-size:14px; }
     footer { text-align:center; margin-top:24px; font-size:12px; color:#b9c6f8; }
   </style>
@@ -51,25 +56,28 @@
 <body>
 <div class="app">
   <header>
-    <h1>🩵 Бабл Gifts</h1>
+    <h1>🩵 Бабл Подарки</h1>
     <span>🎁 Коллекция</span>
   </header>
 
   <div class="coins">
-    <span>🪙 Твои монеты</span>
-    <strong id="coins">Загрузка…</strong>
+    <span>Твои пузырьки</span>
+    <strong class="balance">
+      <img class="bubble-icon" src="/static/bubble.png" alt="Пузырёк">
+      <span id="coins">Загрузка…</span>
+    </strong>
   </div>
 
   <section class="hero">
-    <div class="bubble">🩵</div>
+    <img class="hero-bubble" src="/static/bubble.png" alt="Валюта Пузырьки">
     <h2>Привет, друг!</h2>
     <p class="muted">Собирай подарки вместе с Баблом</p>
   </section>
 
   <h2 class="section-title">🎁 Ежедневная награда</h2>
   <div class="card">
-    <div>Забирай бонус каждый день и копи монеты.</div>
-    <button id="bonus">Получить бонус +50 🪙</button>
+    <div>Забирай бонус каждый день и копи пузырьки.</div>
+    <button id="bonus">Получить бонус +50 🫧</button>
   </div>
 
   <h2 class="section-title">✨ Подарки-сюрпризы</h2>
@@ -77,16 +85,19 @@
     <div class="gift-icon">🎁</div>
     <div>
       <strong>Коробка Бабла</strong>
-      <div class="muted">Стоимость: 30 монет</div>
+      <div class="muted price">
+        Стоимость: 30
+        <img class="bubble-icon" src="/static/bubble.png" alt="Пузырёк">
+      </div>
     </div>
   </div>
   <button id="openBox">Открыть коробку</button>
 
   <h2 class="section-title">🎒 Моя коллекция</h2>
-  <div class="card" id="inventory">Пока загружаем коллекцию…</div>
+  <div class="card" id="inventory">Загружаем коллекцию…</div>
 
   <div id="message" role="status"></div>
-  <footer>Бабл Gifts · Игровые монеты не являются деньгами</footer>
+  <footer>Бабл Подарки · Пузырьки — игровая валюта, не деньги</footer>
 </div>
 
 <script>
@@ -110,18 +121,17 @@ async function api(path, method = "GET") {
   const response = await fetch(path, { method, headers });
   const data = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
-    throw new Error(data.detail || "Не удалось выполнить действие");
-  }
+  if (!response.ok) throw new Error(data.detail || "Не удалось выполнить действие");
   return data;
 }
 
 function render(data) {
-  if (data.coins !== undefined) {
-    coinsEl.textContent = Number(data.coins).toLocaleString("ru-RU");
+  const player = data.player || data;
+  if (player.coins !== undefined) {
+    coinsEl.textContent = Number(player.coins).toLocaleString("ru-RU");
   }
 
-  const items = data.inventory || data.items || [];
+  const items = data.inventory || [];
   inventoryEl.textContent = "";
 
   if (!items.length) {
@@ -130,10 +140,9 @@ function render(data) {
     items.forEach(item => {
       const row = document.createElement("div");
       row.style.padding = "6px 0";
-      row.textContent =
-        (item.emoji || "🎁") + " " +
+      row.textContent = (item.emoji || "🎁") + " " +
         (item.name || item.title || item.id || "Подарок") +
-        (item.qty ? " × " + item.qty : "");
+        ((item.quantity || item.qty) ? " × " + (item.quantity || item.qty) : "");
       inventoryEl.appendChild(row);
     });
   }
@@ -146,12 +155,11 @@ async function loadGame() {
     messageEl.textContent = "Добро пожаловать!";
   } catch (error) {
     coinsEl.textContent = "—";
-    messageEl.textContent =
-      "Открой игру через Telegram. " + error.message;
+    messageEl.textContent = "Открой игру через Telegram. " + error.message;
   }
 }
 
-async function action(path, button, successText) {
+async function action(path, successText) {
   if (busy) return;
   busy = true;
   bonusBtn.disabled = true;
@@ -159,8 +167,9 @@ async function action(path, button, successText) {
   messageEl.textContent = "Подожди немного…";
 
   try {
-    const data = await api(path, "POST");
-    render(data);
+    await api(path, "POST");
+    const updated = await api("/api/state");
+    render(updated);
     messageEl.textContent = successText;
   } catch (error) {
     messageEl.textContent = error.message;
@@ -172,14 +181,15 @@ async function action(path, button, successText) {
 }
 
 bonusBtn.addEventListener("click", () =>
-  action("/api/daily-bonus", bonusBtn, "🎉 Бонус получен!")
+  action("/api/daily", "🎉 Ты получил 50 пузырьков!")
 );
 
 boxBtn.addEventListener("click", () =>
-  action("/api/open-box", boxBtn, "🎁 Коробка открыта!")
+  action("/api/open-box", "🎁 Коробка открыта!")
 );
 
 loadGame();
 </script>
 </body>
 </html>
+```
