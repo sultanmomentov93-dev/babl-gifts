@@ -236,23 +236,33 @@
   margin-bottom: 12px;
 }
 
+
 .tasks-heading h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  color: #fff;
 }
 
 .tasks-show-all {
   order: 2;
   margin-left: auto;
-  padding: 5px 10px;
-  border: 1px solid #6bdcff;
-  border-radius: 10px;
-  background: #172d70;
-  color: #a9eeff;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
   cursor: pointer;
+  outline: none;
+  box-shadow: none;
+}
+
+.tasks-show-all:focus,
+.tasks-show-all:active {
+  outline: none;
+  box-shadow: none;
 }
   padding: 7px 13px;
   border: 1px solid #6bdcff;
