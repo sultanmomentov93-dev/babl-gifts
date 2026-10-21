@@ -1,1 +1,187 @@
 
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Бабл Gifts</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px 16px 35px;
+      font-family: Arial, sans-serif;
+      color: #fff; min-height: 100vh;
+      background: linear-gradient(160deg,#10265c,#29145a,#10172e);
+    }
+    .app { max-width: 480px; margin: auto; }
+    header { display:flex; justify-content:space-between; align-items:center; }
+    h1 { font-size: 26px; margin: 8px 0; }
+    .coins {
+      background:#ffffff18; border:1px solid #ffffff30;
+      border-radius:18px; padding:13px; margin:20px 0;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .hero {
+      text-align:center; padding:22px 12px;
+      border-radius:25px;
+      background:linear-gradient(145deg,#426cf0,#783ee8);
+      box-shadow:0 12px 35px #0004;
+    }
+    .bubble { font-size:100px; line-height:1.3; }
+    .hero h2 { margin:8px 0; }
+    .muted { color:#d9e1ff; font-size:14px; }
+    .section-title { margin:24px 0 12px; font-size:19px; }
+    .card {
+      background:#ffffff12; border:1px solid #ffffff20;
+      padding:15px; border-radius:18px; margin-bottom:12px;
+    }
+    button {
+      width:100%; border:0; border-radius:13px;
+      padding:14px; margin-top:12px;
+      background:#75e5ff; color:#13224b;
+      font-weight:bold; font-size:16px;
+    }
+    button:disabled { opacity:.55; }
+    .gift { display:flex; align-items:center; gap:14px; }
+    .gift-icon { font-size:40px; }
+    #message { min-height:22px; margin-top:14px; font-size:14px; }
+    footer { text-align:center; margin-top:24px; font-size:12px; color:#b9c6f8; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🩵 Бабл Gifts</h1>
+    <span>🎁 Коллекция</span>
+  </header>
+
+  <div class="coins">
+    <span>🪙 Твои монеты</span>
+    <strong id="coins">Загрузка…</strong>
+  </div>
+
+  <section class="hero">
+    <div class="bubble">🩵</div>
+    <h2>Привет, друг!</h2>
+    <p class="muted">Собирай подарки вместе с Баблом</p>
+  </section>
+
+  <h2 class="section-title">🎁 Ежедневная награда</h2>
+  <div class="card">
+    <div>Забирай бонус каждый день и копи монеты.</div>
+    <button id="bonus">Получить бонус +50 🪙</button>
+  </div>
+
+  <h2 class="section-title">✨ Подарки-сюрпризы</h2>
+  <div class="card gift">
+    <div class="gift-icon">🎁</div>
+    <div>
+      <strong>Коробка Бабла</strong>
+      <div class="muted">Стоимость: 30 монет</div>
+    </div>
+  </div>
+  <button id="openBox">Открыть коробку</button>
+
+  <h2 class="section-title">🎒 Моя коллекция</h2>
+  <div class="card" id="inventory">Пока загружаем коллекцию…</div>
+
+  <div id="message" role="status"></div>
+  <footer>Бабл Gifts · Игровые монеты не являются деньгами</footer>
+</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+const coinsEl = document.getElementById("coins");
+const inventoryEl = document.getElementById("inventory");
+const messageEl = document.getElementById("message");
+const bonusBtn = document.getElementById("bonus");
+const boxBtn = document.getElementById("openBox");
+
+let busy = false;
+
+async function api(path, method = "GET") {
+  const headers = {};
+  if (tg.initData) headers.Authorization = "tma " + tg.initData;
+  if (method !== "GET") headers["Content-Type"] = "application/json";
+
+  const response = await fetch(path, { method, headers });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Не удалось выполнить действие");
+  }
+  return data;
+}
+
+function render(data) {
+  if (data.coins !== undefined) {
+    coinsEl.textContent = Number(data.coins).toLocaleString("ru-RU");
+  }
+
+  const items = data.inventory || data.items || [];
+  inventoryEl.textContent = "";
+
+  if (!items.length) {
+    inventoryEl.textContent = "🎁 Твоя коллекция пока пуста.";
+  } else {
+    items.forEach(item => {
+      const row = document.createElement("div");
+      row.style.padding = "6px 0";
+      row.textContent =
+        (item.emoji || "🎁") + " " +
+        (item.name || item.title || item.id || "Подарок") +
+        (item.qty ? " × " + item.qty : "");
+      inventoryEl.appendChild(row);
+    });
+  }
+}
+
+async function loadGame() {
+  try {
+    const data = await api("/api/state");
+    render(data);
+    messageEl.textContent = "Добро пожаловать!";
+  } catch (error) {
+    coinsEl.textContent = "—";
+    messageEl.textContent =
+      "Открой игру через Telegram. " + error.message;
+  }
+}
+
+async function action(path, button, successText) {
+  if (busy) return;
+  busy = true;
+  bonusBtn.disabled = true;
+  boxBtn.disabled = true;
+  messageEl.textContent = "Подожди немного…";
+
+  try {
+    const data = await api(path, "POST");
+    render(data);
+    messageEl.textContent = successText;
+  } catch (error) {
+    messageEl.textContent = error.message;
+  } finally {
+    busy = false;
+    bonusBtn.disabled = false;
+    boxBtn.disabled = false;
+  }
+}
+
+bonusBtn.addEventListener("click", () =>
+  action("/api/daily-bonus", bonusBtn, "🎉 Бонус получен!")
+);
+
+boxBtn.addEventListener("click", () =>
+  action("/api/open-box", boxBtn, "🎁 Коробка открыта!")
+);
+
+loadGame();
+</script>
+</body>
+</html>
