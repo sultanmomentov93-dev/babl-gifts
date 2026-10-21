@@ -149,6 +149,13 @@ tg.ready();
 tg.expand();
 
 const coinsEl = document.getElementById("coins");
+  const playerNameEl = document.getElementById("playerName");
+const telegramUser = tg.initDataUnsafe?.user;
+
+if (telegramUser) {
+  playerNameEl.textContent =
+    "🩵 " + (telegramUser.first_name || telegramUser.username || "Игрок");
+}
 const inventoryEl = document.getElementById("inventory");
 const messageEl = document.getElementById("message");
 const bonusBtn = document.getElementById("bonus");
