@@ -90,6 +90,138 @@
     .price { display:flex; align-items:center; gap:5px; margin-top:6px; }
     #message { min-height:22px; margin-top:14px; font-size:14px; }
     footer { text-align:center; margin-top:24px; font-size:12px; color:#b9c6f8; }
+    
+.roulette-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 155px;
+  margin: 18px 0;
+  padding: 18px;
+  overflow: hidden;
+  border: 2px solid #62d9ff;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 85% 35%, #5742a5 0%, transparent 38%),
+    linear-gradient(135deg, #09265c, #172d70 55%, #301b65);
+  box-shadow:
+    0 0 18px #42caff35,
+    inset 0 0 20px #66caff15;
+  color: white;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s, box-shadow .15s;
+}
+.roulette-card:active {
+  transform: scale(.98);
+  box-shadow: 0 0 25px #62d9ff70;
+}
+.roulette-info {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+}
+.roulette-title {
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.roulette-subtitle {
+  color: #c8eaff;
+  font-size: 14px;
+  line-height: 1.35;
+  margin-bottom: 14px;
+}
+.roulette-button {
+  display: inline-block;
+  border: 1px solid #fff8;
+  border-radius: 14px;
+  padding: 11px 22px;
+  background: linear-gradient(135deg, #ffe68b, #ffb5ee);
+  color: #32205b;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 4px 14px #0003;
+}
+.roulette-art {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 125px;
+  height: 125px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.roulette-wheel {
+  position: absolute;
+  right: 3px;
+  top: 4px;
+  width: 91px;
+  height: 91px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 5px solid #ffdb79;
+  border-radius: 50%;
+  background: conic-gradient(
+    #ff7dba 0 60deg,
+    #5548d9 60deg 120deg,
+    #5ee4ff 120deg 180deg,
+    #ffcb63 180deg 240deg,
+    #a77bff 240deg 300deg,
+    #ff7dba 300deg
+  );
+  box-shadow: 0 0 18px #9d8cff85, inset 0 0 0 3px #fff8;
+  font-size: 28px;
+}
+.roulette-bubble {
+  position: absolute;
+  z-index: 3;
+  border: 2px solid #a5f2ff;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #fff 0 5%, #9af4ff88 18%, #8a71ff44 60%, #ff8de655);
+  box-shadow: inset -3px -4px 8px #9ceeff55, 0 0 8px #70eaff55;
+}
+.roulette-bubble.one {
+  width: 18px;
+  height: 18px;
+  top: 4px;
+  left: 4px;
+}
+.roulette-bubble.two {
+  width: 12px;
+  height: 12px;
+  right: 1px;
+  bottom: 8px;
+}
+.roulette-bubble.three {
+  width: 9px;
+  height: 9px;
+  left: 23px;
+  bottom: 3px;
+}
+.roulette-mascot {
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  z-index: 4;
+  font-size: 49px;
+  filter: drop-shadow(0 4px 4px #0006);
+  animation: bablFloat 2.4s ease-in-out infinite;
+}
+@keyframes bablFloat {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-5px) rotate(3deg); }
+}
+@media (max-width: 360px) {
+  .roulette-card { padding: 13px; }
+  .roulette-title { font-size: 18px; }
+  .roulette-art { flex-basis: 100px; transform: scale(.9); }
+}
   </style>
 </head>
 <body>
