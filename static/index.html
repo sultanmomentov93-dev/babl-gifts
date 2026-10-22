@@ -979,75 +979,300 @@ document.getElementById("balancePlus").addEventListener("click", function () {
   }
   function hide() {
     if (spinning) return;
-    overlay.hidden = true;
-    document.body.style.overflow = '';
+
+(function setupRoulette() {
+  const overlay = document.getElementById("rouletteOverlay");
+  const open = document.getElementById("openRoulette");
+  const card = document.getElementById("rouletteCard");
+  const close = document.getElementById("closeRoulette");
+  const modes = Array.from(document.querySelectorAll(".roulette-mode"));
+  const start = document.getElementById("spinRoulette");
+  const track = document.getElementById("rouletteTrack");
+  const note = document.getElementById("rouletteNote");
+  const windowEl = track.parentElement;
+
+  let mode = "free";
+  let spinning = false;
+
+  const prizes = [
+    { emoji: "🎂", name: "Торт" },
+    { emoji: "💐", name: "Букет" },
+    { emoji: "🚀", name: "Ракета" },
+    { emoji: "🍾", name: "Шампанское" },
+    { emoji: "🎁", name: "Подарок" },
+    { emoji: "🌹", name: "Роза" },
+    { emoji: "💝", name: "Сердце" },
+    { emoji: "🧸", name: "Мишка" },
+    { emoji: "🫧", name: "+250" },
+    { emoji: "🫧", name: "+100" },
+    { emoji: "🫧", name: "+50" },
+    { emoji: "🫧", name: "+25" },
+    { emoji: "🫧", name: "+10" },
+    { emoji: "➖", name: "Пусто" }
+  ];
+
+  function renderPrizes(list) {
+    track.innerHTML = "";
+
+    list.forEach(function (prize, i) {
+      const item = document.createElement("div");
+      item.className = "roulette-prize";
+      item.dataset.prizeIndex = String(i % prizes.length);
+
+      const emoji = document.createElement("span");
+      emoji.className = "prize-emoji";
+      emoji.textContent = prize.emoji;
+
+      const label = document.createElement("span");
+      label.className = "prize-label";
+      label.textContent = prize.name;
+
+      item.append(emoji, label);
+      track.appendChild(item);
+    });
   }
-  open.addEventListener('click', function(e){e.stopPropagation();show();});
-  card.addEventListener('click', show);
-  card.addEventListener('keydown', function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
-  close.addEventListener('click', hide);
-  overlay.addEventListener('click', function(e){if(e.target===overlay)hide();});
 
-  modes.forEach(function(btn){btn.addEventListener('click',function(){
-    if(spinning)return;
-    mode=btn.dataset.mode;
-    modes.forEach(x=>x.classList.toggle('active',x===btn));
-    start.textContent=mode==='free'?'Крутить бесплатно':'Крутить за 🫧 100';
-    note.textContent=mode==='free'?'Бесплатный режим — крути сколько угодно':'Стоимость одного прокрута — 100 Пузырьков';
-  });});
+  function show() {
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
 
-  start.addEventListener('click', function(){
-    if(spinning)return;
-    if(mode!=='free') {
-      const current=Number((document.getElementById('coins').textContent||'0').replace(/\s/g,'').replace(',','.'));
-      if(!Number.isFinite(current)||current<100){note.textContent='Недостаточно Пузырьков. Нужно 100 🫧';return;}
-      note.textContent='Платная рулетка пока не подключена к серверу — Пузырьки не списаны.';
+    if (!spinning) {
+      renderPrizes(prizes);
+      track.style.transition = "none";
+      track.style.transform = "translateX(0px)";
+    }
+
+    loadGame();
+  }
+
+  function hide() {
+    if (spinning) return;
+    overlay.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  open.addEventListener("click", function (e) {
+    e.stopPropagation();
+    show();
+  });
+
+  card.addEventListener("click", show);
+
+  card.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      show();
+    }
+  });
+
+  close.addEventListener("click", hide);
+
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) hide();
+  });
+
+  modes.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (spinning) return;
+
+      // Платный режим пока не подключён к серверу.
+      if (btn.dataset.mode === "paid") {
+        note.textContent =
+          "Платная рулетка пока недоступна. Пузырьки не списываются.";
+        return;
+      }
+
+      mode = "free";
+
+      modes.forEach(function (x) {
+        x.classList.toggle("active", x === btn);
+      });
+
+      start.textContent = "Крутить бесплатно";
+      note.textContent = "Бесплатный прокрут — удачи!";
+    });
+  });
+
+  function findPrizeIndex(serverPrize) {
+    const p = serverPrize || {};
+    const kind = String(p.kind || "").toLowerCase();
+    const name = String(p.name || "").toLowerCase();
+    const id = String(p.id || "").toLowerCase();
+    const amount = Number(p.amount || 0);
+
+    // Награда в виде Пузырьков.
+    if (
+      kind.includes("coin") ||
+      kind.includes("bubble") ||
+      kind.includes("currency") ||
+      amount > 0
+    ) {
+      const index = prizes.findIndex(function (item) {
+        return item.name === "+" + amount;
+      });
+
+      if (index !== -1) return index;
+    }
+
+    // Пустой результат.
+    if (
+      kind.includes("empty") ||
+      name.includes("пуст") ||
+      id.includes("empty")
+    ) {
+      return 13;
+    }
+
+    // Сопоставляем подарок с карточкой на ленте.
+    const exact = prizes.findIndex(function (item) {
+      return item.name.toLowerCase() === name;
+    });
+
+    if (exact !== -1) return exact;
+
+    if (p.emoji) {
+      const byEmoji = prizes.findIndex(function (item) {
+        return item.emoji === p.emoji &&
+          !item.name.startsWith("+");
+      });
+
+      if (byEmoji !== -1) return byEmoji;
+    }
+
+    // Если сервер прислал другое название, не придумываем награду.
+    return -1;
+  }
+
+  function animateToPrize(prizeIndex) {
+    return new Promise(function (resolve) {
+      const loops = 7;
+      const longList = [];
+
+      for (let i = 0; i < loops; i++) {
+        longList.push(...prizes);
+      }
+
+      renderPrizes(longList);
+
+      const children = Array.from(track.children);
+      children.forEach(function (item) {
+        item.classList.remove("winner");
+      });
+
+      track.style.transition = "none";
+      track.style.transform = "translateX(0px)";
+      void track.offsetWidth;
+
+      const targetIndex = prizes.length * 5 + prizeIndex;
+      const targetCard = children[targetIndex];
+
+      if (!targetCard) {
+        resolve();
+        return;
+      }
+
+      const targetCenter =
+        targetCard.offsetLeft + targetCard.offsetWidth / 2;
+
+      const desiredX = targetCenter - windowEl.clientWidth / 2;
+      const maxX = Math.max(
+        0,
+        track.scrollWidth - windowEl.clientWidth
+      );
+
+      const finalX = Math.min(maxX, Math.max(0, desiredX));
+
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          track.style.transition =
+            "transform 5.2s cubic-bezier(.08,.72,.08,1)";
+          track.style.transform = "translateX(-" + finalX + "px)";
+        });
+      });
+
+      window.setTimeout(function () {
+        children.forEach(function (item) {
+          item.classList.remove("winner");
+        });
+
+        targetCard.classList.add("winner");
+        resolve();
+      }, 5400);
+    });
+  }
+
+  start.addEventListener("click", async function () {
+    if (spinning) return;
+
+    if (mode !== "free") {
+      note.textContent =
+        "Платный прокрут пока не подключён. Пузырьки не списаны.";
       return;
     }
 
-    spinning=true;
-    start.disabled=true;
-    modes.forEach(x=>x.disabled=true);
-    note.textContent='Крутим… смотри, какой приз остановится под стрелкой!';
-
-    // Несколько повторов ленты дают настоящую видимую прокрутку, а не скачок к результату.
-    const loops=7;
-    const longList=[];
-    for(let i=0;i<loops;i++) longList.push(...prizes);
-    renderPrizes(longList);
-    const children=Array.from(track.children);
-    children.forEach(x=>x.classList.remove('winner'));
-    track.style.transition='none';
-    track.style.transform='translateX(0px)';
-    void track.offsetWidth;
-
-    const winIndex=Math.floor(Math.random()*prizes.length);
-    const targetIndex=prizes.length*5+winIndex;
-    const targetCard=children[targetIndex];
-    const targetCenter=targetCard.offsetLeft+targetCard.offsetWidth/2;
-    const desiredX=targetCenter-windowEl.clientWidth/2;
-    const maxX=Math.max(0,track.scrollWidth-windowEl.clientWidth);
-    const finalX=Math.min(maxX,Math.max(0,desiredX));
-
-    // Короткий старт и длинное замедление создают эффект прокрутки рулетки.
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        track.style.transition='transform 5.2s cubic-bezier(.08,.72,.08,1)';
-        track.style.transform='translateX(-'+finalX+'px)';
-      });
+    spinning = true;
+    start.disabled = true;
+    modes.forEach(function (btn) {
+      btn.disabled = true;
     });
 
-    window.setTimeout(function(){
-      children.forEach(x=>x.classList.remove('winner'));
-      targetCard.classList.add('winner');
-      note.textContent='🎉 Выпало: '+prizes[winIndex].emoji+' '+prizes[winIndex].name+'!';
-      spinning=false;
-      start.disabled=false;
-      modes.forEach(x=>x.disabled=false);
-    },5350);
-  });
-})();
+    note.textContent = "Крутим рулетку…";
 
+    try {
+      // Приз выбирает сервер и там же начисляется награда.
+      const result = await api(
+        "/api/roulette/spin",
+        "POST",
+        { mode: "free" }
+      );
+
+      if (!result.prize) {
+        throw new Error("Сервер не вернул выпавший приз.");
+      }
+
+      const prizeIndex = findPrizeIndex(result.prize);
+
+      if (prizeIndex === -1) {
+        await loadGame();
+        note.textContent =
+          result.message ||
+          "Результат получен. Обнови игру, чтобы увидеть баланс.";
+        return;
+      }
+
+      await animateToPrize(prizeIndex);
+
+      // Показываем баланс, сохранённый на сервере.
+      if (result.coins !== undefined) {
+        render({ coins: result.coins });
+      }
+
+      // Дополнительно сверяем баланс с базой данных.
+      await loadGame();
+
+      const prize = prizes[prizeIndex];
+      note.textContent =
+        "🎉 Выпало: " + prize.emoji + " " + prize.name + "!";
+
+      if (result.message) {
+        note.textContent = result.message;
+      }
+    } catch (error) {
+      console.error("Ошибка рулетки:", error);
+      note.textContent =
+        "Не удалось прокрутить рулетку: " + error.message;
+    } finally {
+      spinning = false;
+      start.disabled = false;
+
+      modes.forEach(function (btn) {
+        btn.disabled = false;
+      });
+    }
+  });
+
+  renderPrizes(prizes);
+})();
 
 loadGame();
 </script>
