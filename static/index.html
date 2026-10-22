@@ -24,100 +24,112 @@
     background-repeat: no-repeat;
     }
     .app { max-width: 480px; margin: auto; }
-    /* Панель баланса немного уже и уходит за верхний край экрана */
+    /* Новый компактный блок баланса по утверждённому макету */
     .player-panel {
       position: relative;
+      isolation: isolate;
       overflow: hidden;
-      width: 92%;
-      margin: -64px auto 18px;
+      width: 100%;
+      margin: 0 auto 18px;
+      padding: 14px 14px 16px;
+      min-height: 0;
+      border: 2px solid rgba(104, 226, 255, .98);
+      border-radius: 24px;
       background:
-        linear-gradient(90deg, rgba(7, 18, 58, .88) 0%, rgba(10, 29, 79, .62) 48%, rgba(10, 29, 79, .04) 100%),
-        url("/static/balance-bg.png") center 48% / cover no-repeat;
-      border: 2px solid rgba(125, 219, 255, .95);
-      border-top-color: transparent;
-      border-radius: 0 0 24px 24px;
-      padding: 82px 16px 18px;
-      min-height: 300px;
-      box-shadow: 0 8px 24px #0005, inset 0 0 18px #7bdfff50;
+        linear-gradient(90deg, rgba(4, 18, 64, .72) 0%, rgba(7, 23, 70, .45) 53%, rgba(7, 23, 70, .10) 100%),
+        url("/static/balance-bg.png") center / cover no-repeat;
+      box-shadow: 0 0 18px #36dfff70, inset 0 0 16px #5be4ff25;
     }
-    .balance-heading {
-      color: #d9f5ff;
-      font-size: 15px;
-      font-weight: 800;
-      text-shadow: 0 2px 5px #00123f;
-      margin-bottom: 5px;
+    .player-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(3, 13, 48, .36), transparent 78%);
+      z-index: -1;
+      pointer-events: none;
     }
-    .player-name {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 21px;
-      font-weight: bold;
-      max-width: 78%;
-      overflow-wrap: anywhere;
-      text-shadow: 0 2px 5px #00123f;
-    }
+    /* Фото сверху слева; имя остаётся доступно для профиля, но не загромождает макет */
+    .player-panel > .player-name { display: none; }
     .player-avatar {
-      width: 42px;
-      height: 42px;
-      flex: 0 0 42px;
+      display: block;
+      width: 76px;
+      height: 76px;
+      flex: 0 0 76px;
+      margin: 0 0 8px 2px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #8deaff;
-      box-shadow: 0 0 12px #39d8ff80;
+      border: 3px solid #72edff;
+      box-shadow: 0 0 12px #26dfff, 0 0 24px #268bff75;
       background: #163e70;
     }
-    .player-name span { overflow-wrap: anywhere; }
     .player-caption {
-      color: #d5efff;
-      font-size: 12px;
-      margin-top: 4px;
-      text-shadow: 0 2px 5px #00123f;
+      width: fit-content;
+      margin: 0 0 8px 0;
+      color: #f4fcff;
+      font-size: 20px;
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: .2px;
+      text-shadow: 0 2px 4px #00113e, 0 0 9px #45cfff;
+      text-align: left;
     }
+    .player-caption::before { content: '❮  '; color: #9eeaff; }
+    .player-caption::after { content: '  ❯'; color: #9eeaff; }
     .player-balance {
       display: flex;
       align-items: center;
       justify-content: flex-start;
       gap: 10px;
-      margin-top: 18px;
+      margin: 0;
       width: fit-content;
       max-width: 100%;
-      padding: 9px 0;
+      padding: 0;
       border: 0;
       border-radius: 0;
       background: transparent;
       box-shadow: none;
     }
-    .player-balance-label { display: none; }
     .player-balance strong {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 25px;
-      text-shadow: 0 2px 5px #00123f;
+      min-width: 0;
+      font-size: clamp(24px, 7vw, 34px);
+      line-height: 1.1;
+      white-space: nowrap;
+      text-shadow: 0 2px 5px #00123f, 0 0 10px #287bff;
     }
+    .bubble-icon { width: 42px; height: 42px; object-fit: contain; flex: 0 0 42px; }
     .balance-plus {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
-      flex: 0 0 40px;
-      margin: 0;
-      padding: 0;
+      width: 52px;
+      height: 52px;
+      flex: 0 0 52px;
+      margin: 0 0 0 2px;
+      padding: 0 0 4px;
       border-radius: 50%;
-      border: 2px solid #fff3a5;
-      color: #6b2b00;
-      background: linear-gradient(145deg, #fff27a, #ffad19);
-      font-size: 30px;
+      border: 3px solid #fff5ad;
+      color: #fff;
+      background: radial-gradient(circle at 30% 25%, #fffcaa 0%, #ffcf36 26%, #ff8d18 58%, #ff4ec8 100%);
+      font-size: 42px;
+      font-weight: 900;
       line-height: 1;
-      box-shadow: 0 0 12px #ffcb3d9c;
+      text-shadow: 0 2px 2px #8c2e8c;
+      box-shadow: 0 0 10px #ffd83d, 0 0 22px #ff65d5a0, inset 0 2px 5px #fff9;
+      cursor: pointer;
+      transition: transform .15s ease, filter .15s ease;
     }
+    .balance-plus:active { transform: scale(.92); filter: brightness(1.12); }
     @media (max-width: 380px) {
-      .player-panel { width: 92%; margin-top: -58px; padding: 76px 12px 16px; min-height: 278px; }
-      .player-name { font-size: 18px; max-width: 88%; }
-      .player-balance strong { font-size: 21px; }
-      .balance-plus { width: 35px; height: 35px; flex-basis: 35px; }
+      .player-panel { padding: 12px 10px 14px; border-radius: 20px; }
+      .player-avatar { width: 68px; height: 68px; }
+      .player-caption { font-size: 18px; }
+      .player-balance { gap: 7px; }
+      .player-balance strong { font-size: 23px; gap: 6px; }
+      .bubble-icon { width: 36px; height: 36px; flex-basis: 36px; }
+      .balance-plus { width: 44px; height: 44px; flex-basis: 44px; font-size: 36px; }
     }
     header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     h1 { font-size: 24px; margin: 8px 0; }
@@ -474,18 +486,18 @@ body {
 <div class="app">
   <section id="homeScreen">
     <div class="player-panel">
-      <div class="balance-heading">Ваш баланс</div>
-      <div class="player-name">
+      <div class="player-name" aria-hidden="true">
         <img class="player-avatar" id="playerAvatar" src="/static/bubble.png" alt="Фото игрока">
         <span id="playerName">Игрок</span>
       </div>
+      <img class="player-avatar" id="playerAvatarVisible" src="/static/bubble.png" alt="Фото игрока">
       <div class="player-caption">Ваш баланс</div>
       <div class="player-balance">
         <strong>
           <img class="bubble-icon" src="/static/bubble.png" alt="Пузырёк">
           <span id="coins">Загрузка…</span>
         </strong>
-        <button class="balance-plus" id="balancePlus" type="button" aria-label="Пополнить баланс" title="Скоро">+</button>
+        <button class="balance-plus" id="balancePlus" type="button" aria-label="Пополнить баланс" title="Пополнить Пузырьки">+</button>
       </div>
     </div>
 
@@ -556,7 +568,7 @@ body {
   </section>
 
 
-  <section class="tasks-section" id="tasksScreen">
+  <section class="tasks-section" id="tasksScreen" hidden>
       <div class="tasks-heading">
         <h2>Задания</h2>
         <button class="tasks-show-all" id="tasksToggle" type="button" aria-expanded="false">Все</button>
@@ -642,6 +654,7 @@ tg.expand();
 const coinsEl = document.getElementById("coins");
 const playerNameEl = document.getElementById("playerName");
 const playerAvatarEl = document.getElementById("playerAvatar");
+const playerAvatarVisibleEl = document.getElementById("playerAvatarVisible");
 const profileNameEl = document.getElementById("profileName");
 const profileCoinsEl = document.getElementById("profileCoins");
 const telegramUser = tg.initDataUnsafe?.user;
@@ -651,6 +664,7 @@ if (telegramUser) {
     telegramUser.first_name || telegramUser.username || "Игрок";
   if (telegramUser.photo_url) {
     playerAvatarEl.src = telegramUser.photo_url;
+    playerAvatarVisibleEl.src = telegramUser.photo_url;
   }
 }
 
