@@ -73,8 +73,23 @@
       text-shadow: 0 2px 4px #00113e, 0 0 9px #45cfff;
       text-align: left;
     }
-    .player-caption::before { content: '❮  '; color: #9eeaff; }
-    .player-caption::after { content: '  ❯'; color: #9eeaff; }
+    /* Decorative glowing strokes only around the main balance title */
+    .balance-caption::before,
+    .balance-caption::after {
+      content: "";
+      display: inline-block;
+      width: 24px;
+      height: 27px;
+      vertical-align: -5px;
+      flex: 0 0 24px;
+      background:
+        linear-gradient(25deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 1px / 19px 7px no-repeat,
+        linear-gradient(0deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 10px / 24px 7px no-repeat,
+        linear-gradient(-25deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 19px / 19px 7px no-repeat;
+      filter: drop-shadow(0 0 4px #35dfff) drop-shadow(0 0 8px #278dff);
+    }
+    .balance-caption::before { margin-right: 7px; }
+    .balance-caption::after { margin-left: 7px; transform: scaleX(-1); }
     .player-balance {
       display: flex;
       align-items: center;
@@ -491,7 +506,7 @@ body {
         <span id="playerName">Игрок</span>
       </div>
       <img class="player-avatar" id="playerAvatarVisible" src="/static/bubble.png" alt="Фото игрока">
-      <div class="player-caption">Ваш баланс</div>
+      <div class="player-caption balance-caption">Ваш баланс</div>
       <div class="player-balance">
         <strong>
           <img class="bubble-icon" src="/static/bubble.png" alt="Пузырёк">
