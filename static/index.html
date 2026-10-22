@@ -931,54 +931,7 @@ document.getElementById("balancePlus").addEventListener("click", function () {
 });
 
 
-// Рулетка: прокрутка видна, выбранный приз останавливается ровно под указателем.
-// Выигрыш пока демонстрационный: серверное начисление призов подключается отдельно.
-(function setupRoulette() {
-  const overlay = document.getElementById('rouletteOverlay');
-  const open = document.getElementById('openRoulette');
-  const card = document.getElementById('rouletteCard');
-  const close = document.getElementById('closeRoulette');
-  const modes = Array.from(document.querySelectorAll('.roulette-mode'));
-  const start = document.getElementById('spinRoulette');
-  const track = document.getElementById('rouletteTrack');
-  const note = document.getElementById('rouletteNote');
-  const windowEl = track.parentElement;
-  let mode = 'free';
-  let spinning = false;
-  const prizes = [
-    {emoji:'🎂',name:'Торт'}, {emoji:'💐',name:'Букет'}, {emoji:'🚀',name:'Ракета'},
-    {emoji:'🍾',name:'Шампанское'}, {emoji:'🎁',name:'Подарок'}, {emoji:'🌹',name:'Роза'},
-    {emoji:'💝',name:'Сердце'}, {emoji:'🧸',name:'Мишка'}, {emoji:'🫧',name:'+250'},
-    {emoji:'🫧',name:'+100'}, {emoji:'🫧',name:'+50'}, {emoji:'🫧',name:'+25'},
-    {emoji:'🫧',name:'+10'}, {emoji:'➖',name:'Пусто'}
-  ];
 
-  function renderPrizes(list) {
-    track.innerHTML = '';
-    list.forEach(function(prize, i) {
-      const item = document.createElement('div');
-      item.className = 'roulette-prize';
-      item.dataset.prizeIndex = String(i % prizes.length);
-      item.innerHTML = '<span class="prize-emoji"></span><span class="prize-label"></span>';
-      item.querySelector('.prize-emoji').textContent = prize.emoji;
-      item.querySelector('.prize-label').textContent = prize.name;
-      track.appendChild(item);
-    });
-  }
-  renderPrizes(prizes);
-
-  function show() {
-    overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
-    // При каждом открытии показываем ленту с начала, без старого смещения.
-    if (!spinning) {
-      renderPrizes(prizes);
-      track.style.transition = 'none';
-      track.style.transform = 'translateX(0px)';
-    }
-  }
-  function hide() {
-    if (spinning) return;
 
 (function setupRoulette() {
   const overlay = document.getElementById("rouletteOverlay");
