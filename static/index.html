@@ -848,14 +848,28 @@ if (telegramUser) {
   }
 }
 
-async function api(path, method = "GET") {
+
+async function api(path, method = "GET", body = null) {
   const headers = {};
-  if (tg.initData) headers.Authorization = "tma " + tg.initData;
-  const response = await fetch(path, { method, headers });
+
+  if (tg.initData) {
+    headers.Authorization = "tma " + tg.initData;
+  }
+
+  const options = { method, headers };
+
+  if (body !== null) {
+    headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(path, options);
   const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
     throw new Error(data.detail || "Не удалось выполнить действие");
   }
+
   return data;
 }
 
