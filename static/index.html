@@ -640,5 +640,51 @@ loadGame();
   });
 })();
 </script>
+  
+<script>
+(function () {
+  const screens = [
+    "homeScreen",
+    "tasksScreen",
+    "profileScreen"
+  ];
+
+  const buttons = document.querySelectorAll(".nav-item");
+
+  buttons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      const target = button.dataset.screen;
+
+      screens.forEach(function (id) {
+        const screen = document.getElementById(id);
+        if (screen) {
+          screen.hidden = id !== target;
+        }
+      });
+
+      buttons.forEach(function (item) {
+        const active = item === button;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-current", active ? "page" : "false");
+      });
+
+      const playerName = document.getElementById("playerName");
+      const profileName = document.getElementById("profileName");
+      const coins = document.getElementById("coins");
+      const profileCoins = document.getElementById("profileCoins");
+
+      if (playerName && profileName) {
+        profileName.textContent = playerName.textContent;
+      }
+
+      if (coins && profileCoins) {
+        profileCoins.textContent = coins.textContent;
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+})();
+</script>
 </body>
 </html>
