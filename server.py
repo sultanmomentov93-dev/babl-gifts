@@ -1,1098 +1,251 @@
+import os, json, sqlite3, time, hmac, hashlib, secrets
+from urllib.parse import parse_qsl
+from pathlib import Path
+from typing import Optional
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import httpx
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Бабл Подарки</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    * { box-sizing: border-box; }
-    
-  body {
-    margin: 0;
-    padding: 20px 16px 35px;
-    font-family: Arial, sans-serif;
-    color: #fff;
-    min-height: 100vh;
-    background-image:
-      linear-gradient(rgba(10, 18, 45, 0.25), rgba(10, 18, 45, 0.55)),
-      url("/static/background.jpg");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    }
-    .app { max-width: 480px; margin: auto; }
-    /* Баланс по утверждённому макету: аватар, подпись и одна строка баланса */
-    .player-panel {
-      position: relative;
-      isolation: isolate;
-      overflow: hidden;
-      width: 100%;
-      margin: 0 auto 18px;
-      padding: 12px 12px 14px;
-      min-height: 0;
-      border: 2px solid rgba(104, 226, 255, .98);
-      border-radius: 24px;
-      background:
-        linear-gradient(90deg, rgba(4, 18, 64, .58) 0%, rgba(7, 23, 70, .28) 58%, rgba(7, 23, 70, .04) 100%),
-        url("/static/balance-bg.png") center / cover no-repeat;
-      box-shadow: 0 0 18px #36dfff70, inset 0 0 16px #5be4ff25;
-    }
-    .player-panel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, rgba(3, 13, 48, .36), transparent 78%);
-      z-index: -1;
-      pointer-events: none;
-    }
-    /* Фото сверху слева; имя остаётся доступно для профиля, но не загромождает макет */
-    .player-panel > .player-name { display: none; }
-    .player-avatar {
-      display: block;
-      width: 82px;
-      height: 82px;
-      flex: 0 0 82px;
-      margin: 0 0 7px 2px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid #72edff;
-      box-shadow: 0 0 12px #26dfff, 0 0 24px #268bff75;
-      background: #163e70;
-    }
-    .player-caption {
-      width: fit-content;
-      margin: 0 0 8px 0;
-      color: #f4fcff;
-      font-size: 21px;
-      line-height: 1.12;
-      font-weight: 900;
-      letter-spacing: .2px;
-      text-shadow: 0 2px 4px #00113e, 0 0 9px #45cfff;
-      text-align: left;
-    }
-    /* Decorative glowing strokes only around the main balance title */
-    .balance-caption::before,
-    .balance-caption::after {
-      content: "";
-      display: inline-block;
-      width: 23px;
-      height: 27px;
-      vertical-align: -5px;
-      flex: 0 0 23px;
-      background:
-        linear-gradient(25deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 1px / 19px 7px no-repeat,
-        linear-gradient(0deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 10px / 24px 7px no-repeat,
-        linear-gradient(-25deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 19px / 19px 7px no-repeat;
-      filter: drop-shadow(0 0 4px #35dfff) drop-shadow(0 0 8px #278dff);
-    }
-    .balance-caption::before { margin-right: 7px; }
-    .balance-caption::after { margin-left: 7px; transform: scaleX(-1); }
-    .player-balance {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 9px;
-      margin: 0;
-      width: fit-content;
-      max-width: 100%;
-      padding: 0;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
-    }
-    .player-balance strong {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      font-size: clamp(25px, 7.5vw, 36px);
-      line-height: 1.1;
-      white-space: nowrap;
-      text-shadow: 0 2px 5px #00123f, 0 0 10px #287bff;
-    }
-    .player-balance .bubble-icon { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
-    .balance-plus {
-      position: relative;
-      isolation: isolate;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      flex: 0 0 44px;
-      margin: 0 0 0 8px;
-      padding: 0 0 4px;
-      border-radius: 50%;
-      border: 3px solid #fff5ad;
-      color: #fff;
-      background: radial-gradient(circle at 30% 25%, #fffcaa 0%, #ffcf36 26%, #ff8d18 58%, #ff4ec8 100%);
-      font-size: 36px;
-      font-weight: 900;
-      line-height: 1;
-      text-shadow: 0 2px 2px #8c2e8c;
-      box-shadow: 0 0 10px #ffd83d, 0 0 22px #ff65d5a0, inset 0 2px 5px #fff9;
-      cursor: pointer;
-      transition: transform .15s ease, filter .15s ease;
-    }
-    /* Светящиеся декоративные лучики вокруг кнопки «+», как на макете */
-    .balance-plus::before,
-    .balance-plus::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      width: 19px;
-      height: 38px;
-      pointer-events: none;
-      background:
-        linear-gradient(25deg, transparent 38%, #fff9a8 44%, #ffffff 50%, #ffcf36 58%, transparent 64%) center 2px / 17px 7px no-repeat,
-        linear-gradient(0deg, transparent 38%, #fff9a8 44%, #ffffff 50%, #ffcf36 58%, transparent 64%) center 15px / 19px 7px no-repeat,
-        linear-gradient(-25deg, transparent 38%, #fff9a8 44%, #ffffff 50%, #ffcf36 58%, transparent 64%) center 28px / 17px 7px no-repeat;
-      filter: drop-shadow(0 0 3px #ffdb45) drop-shadow(0 0 7px #ff8b20);
-      transform: translateY(-50%);
-      z-index: -1;
-    }
-    .balance-plus::before { right: calc(100% + 1px); }
-    .balance-plus::after { left: calc(100% + 1px); transform: translateY(-50%) scaleX(-1); }
-    .balance-plus:active { transform: scale(.92); filter: brightness(1.12); }
-    @media (max-width: 380px) {
-      .player-panel { padding: 10px 9px 12px; border-radius: 20px; }
-      .player-avatar { width: 68px; height: 68px; flex-basis: 68px; }
-      .player-caption { font-size: 18px; }
-      .player-balance { gap: 6px; }
-      .player-balance strong { font-size: 22px; gap: 5px; }
-      .player-balance .bubble-icon { width: 36px; height: 36px; flex-basis: 36px; }
-      .balance-plus { width: 36px; height: 36px; flex-basis: 36px; font-size: 30px; border-width: 2px; margin-left: 7px; }
-      .balance-plus::before, .balance-plus::after { transform: translateY(-50%) scale(.88); }
-      .balance-plus::after { transform: translateY(-50%) scaleX(-1) scale(.88); }
-    }
-    header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    h1 { font-size: 24px; margin: 8px 0; }
-    .coins {
-      background:#ffffff18; border:1px solid #ffffff30;
-      border-radius:18px; padding:13px; margin:20px 0;
-      display:flex; justify-content:space-between; align-items:center;
-      gap:10px;
-    }
-    .balance { display:flex; align-items:center; gap:8px; }
-    .bubble-icon { width:28px; height:28px; object-fit:contain; vertical-align:middle; }
-    .hero {
-      text-align:center; padding:22px 12px;
-      border-radius:25px;
-      background:linear-gradient(145deg,#237c92,#426cf0,#783ee8);
-      box-shadow:0 12px 35px #0004;
-    }
-    .hero-bubble { width:112px; height:112px; object-fit:contain; }
-    .hero h2 { margin:8px 0; }
-    .muted { color:#d9e1ff; font-size:14px; }
-    .section-title { margin:24px 0 12px; font-size:19px; }
-    .card {
-      background:#ffffff12; border:1px solid #ffffff20;
-      padding:15px; border-radius:18px; margin-bottom:12px;
-    }
-    button {
-      width:100%; border:0; border-radius:13px;
-      padding:14px; margin-top:12px;
-      background:#75e5ff; color:#13224b;
-      font-weight:bold; font-size:16px;
-    }
-    button:disabled { opacity:.55; }
-    .gift { display:flex; align-items:center; gap:14px; }
-    .gift-icon { font-size:40px; }
-    .price { display:flex; align-items:center; gap:5px; margin-top:6px; }
-    #message { min-height:22px; margin-top:14px; font-size:14px; }
-    footer { text-align:center; margin-top:24px; font-size:12px; color:#b9c6f8; }
-    
-.roulette-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 155px;
-  margin: 18px 0;
-  padding: 18px;
-  overflow: hidden;
-  border: 2px solid #62d9ff;
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 85% 35%, #5742a5 0%, transparent 38%),
-    linear-gradient(135deg, #09265c, #172d70 55%, #301b65);
-  box-shadow:
-    0 0 18px #42caff35,
-    inset 0 0 20px #66caff15;
-  color: white;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform .15s, box-shadow .15s;
-}
-.roulette-card:active {
-  transform: scale(.98);
-  box-shadow: 0 0 25px #62d9ff70;
-}
-.roulette-info {
-  position: relative;
-  z-index: 2;
-  flex: 1;
-  min-width: 0;
-}
-.roulette-title {
-  font-size: 21px;
-  line-height: 1.2;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-.roulette-subtitle {
-  color: #c8eaff;
-  font-size: 14px;
-  line-height: 1.35;
-  margin-bottom: 14px;
-}
-.roulette-button {
-  display: inline-block;
-  border: 1px solid #fff8;
-  border-radius: 14px;
-  padding: 11px 22px;
-  background: linear-gradient(135deg, #ffe68b, #ffb5ee);
-  color: #32205b;
-  font-size: 16px;
-  font-weight: 800;
-  box-shadow: 0 4px 14px #0003;
-}
-.roulette-art {
-  position: relative;
-  z-index: 1;
-  flex: 0 0 125px;
-  height: 125px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.roulette-wheel {
-  position: absolute;
-  right: 3px;
-  top: 4px;
-  width: 91px;
-  height: 91px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 5px solid #ffdb79;
-  border-radius: 50%;
-  background: conic-gradient(
-    #ff7dba 0 60deg,
-    #5548d9 60deg 120deg,
-    #5ee4ff 120deg 180deg,
-    #ffcb63 180deg 240deg,
-    #a77bff 240deg 300deg,
-    #ff7dba 300deg
-  );
-  box-shadow: 0 0 18px #9d8cff85, inset 0 0 0 3px #fff8;
-  font-size: 28px;
-}
-.roulette-bubble {
-  position: absolute;
-  z-index: 3;
-  border: 2px solid #a5f2ff;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 25%, #fff 0 5%, #9af4ff88 18%, #8a71ff44 60%, #ff8de655);
-  box-shadow: inset -3px -4px 8px #9ceeff55, 0 0 8px #70eaff55;
-}
-.roulette-bubble.one {
-  width: 18px;
-  height: 18px;
-  top: 4px;
-  left: 4px;
-}
-.roulette-bubble.two {
-  width: 12px;
-  height: 12px;
-  right: 1px;
-  bottom: 8px;
-}
-.roulette-bubble.three {
-  width: 9px;
-  height: 9px;
-  left: 23px;
-  bottom: 3px;
-}
-.roulette-mascot {
-  position: absolute;
-  left: 0;
-  bottom: 2px;
-  z-index: 4;
-  font-size: 49px;
-  filter: drop-shadow(0 4px 4px #0006);
-  animation: bablFloat 2.4s ease-in-out infinite;
-}
-@keyframes bablFloat {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-5px) rotate(3deg); }
-}
-@media (max-width: 360px) {
-  .roulette-card { padding: 13px; }
-  .roulette-title { font-size: 18px; }
-  .roulette-art { flex-basis: 100px; transform: scale(.9); }
+BASE = Path(__file__).parent
+DB_PATH = os.getenv("DATABASE_PATH", str(BASE / "babl_gifts.db"))
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+ALLOW_DEMO_AUTH = os.getenv("ALLOW_DEMO_AUTH", "true").lower() == "true"
+
+app = FastAPI(title="Babl Gifts MVP")
+app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
+
+ITEMS = {
+    "blue_cap": {"name": "Голубая кепка", "emoji": "🧢", "rarity": "Обычный"},
+    "bubble_hoodie": {"name": "Пузырьковая худи", "emoji": "🧥", "rarity": "Редкий"},
+    "golden_crown": {"name": "Корона Бабла", "emoji": "👑", "rarity": "Эпический"},
+    "star_sneakers": {"name": "Звёздные кроссовки", "emoji": "👟", "rarity": "Редкий"},
 }
 
+# Призы рулетки. Подарки сохраняются в pending_gifts («На вывод»),
+# а пузырьки начисляются на баланс внутри одной транзакции SQLite.
+ROULETTE_PRIZES = [
+    {"id": "cake", "name": "Торт", "emoji": "🎂", "kind": "gift", "weight": 4},
+    {"id": "bouquet", "name": "Букет", "emoji": "💐", "kind": "gift", "weight": 5},
+    {"id": "rocket", "name": "Ракета", "emoji": "🚀", "kind": "gift", "weight": 1},
+    {"id": "champagne", "name": "Шампанское", "emoji": "🍾", "kind": "gift", "weight": 2},
+    {"id": "gift", "name": "Подарок", "emoji": "🎁", "kind": "gift", "weight": 8},
+    {"id": "rose", "name": "Роза", "emoji": "🌹", "kind": "gift", "weight": 10},
+    {"id": "heart", "name": "Сердце", "emoji": "💝", "kind": "gift", "weight": 8},
+    {"id": "teddy_bear", "name": "Мишка", "emoji": "🧸", "kind": "gift", "weight": 5},
+    {"id": "bubbles_250", "name": "+250 Пузырьков", "emoji": "🫧", "kind": "coins", "amount": 250, "weight": 1},
+    {"id": "bubbles_100", "name": "+100 Пузырьков", "emoji": "🫧", "kind": "coins", "amount": 100, "weight": 4},
+    {"id": "bubbles_50", "name": "+50 Пузырьков", "emoji": "🫧", "kind": "coins", "amount": 50, "weight": 9},
+    {"id": "bubbles_25", "name": "+25 Пузырьков", "emoji": "🫧", "kind": "coins", "amount": 25, "weight": 15},
+    {"id": "bubbles_10", "name": "+10 Пузырьков", "emoji": "🫧", "kind": "coins", "amount": 10, "weight": 20},
+    {"id": "empty", "name": "Пусто", "emoji": "➖", "kind": "empty", "weight": 8},
+]
+PRIZE_BY_ID = {p["id"]: p for p in ROULETTE_PRIZES}
 
-/* Рулетка Бабл Подарки */
-.roulette-card {
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  width:100%; min-height:138px; margin:18px 0; padding:16px;
-  border:1px solid #8be8ff70; border-radius:22px;
-  background:linear-gradient(135deg,rgba(8,50,37,.94),rgba(5,30,26,.96));
-  box-shadow:0 0 20px #31e6ff20,inset 0 0 18px #76ffb515; cursor:pointer;
-}
-.roulette-title {font-size:21px;font-weight:900;color:#fff;text-shadow:0 0 10px #70eaff80;margin-bottom:5px}
-.roulette-subtitle {font-size:13px;color:#d3f7ff;line-height:1.4;margin-bottom:12px}
-.roulette-button {width:auto;margin:0;padding:11px 22px;border:1px solid #fff8;border-radius:14px;background:linear-gradient(135deg,#caff43,#7fffa9);color:#10382b;font-weight:900;box-shadow:0 0 18px #b8ff4d35}
-.roulette-art {width:94px;height:94px;flex:0 0 94px;border-radius:50%;display:grid;place-items:center;font-size:58px;background:radial-gradient(circle,#67ffe766,#0b5b3a 70%);border:3px solid #9cff5b;box-shadow:0 0 20px #80ff6c65;animation:wheelPulse 2s ease-in-out infinite}
-@keyframes wheelPulse {50%{transform:scale(1.04);filter:brightness(1.12)}}
-.roulette-overlay {position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-start;justify-content:center;padding:14px;background:rgba(0,12,20,.82);backdrop-filter:blur(9px);overflow-y:auto;overscroll-behavior:contain}
-.roulette-modal {width:100%;max-width:460px;max-height:none;overflow:visible;padding:17px;border:1px solid #9effc16b;border-radius:25px;background:linear-gradient(160deg,#0c3a29,#071e1a 80%);box-shadow:0 0 30px #6aff8b24;color:#fff;margin:auto 0}
-.roulette-modal-head {display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
-.roulette-modal-head h2 {font-size:23px;margin:0;text-shadow:0 0 12px #8cffc5}
-.roulette-close {width:38px;height:38px;margin:0;padding:0;border-radius:50%;background:#ffffff14;color:#fff;border:1px solid #ffffff35;font-size:24px}
-.roulette-wallet {padding:9px 13px;border:1px solid #8dffc04f;border-radius:30px;background:#061d17;color:#fff;font-weight:800;white-space:nowrap}
-.roulette-window {position:relative;display:block;min-height:180px;overflow:hidden;margin:10px 0 15px;padding:14px 8px;border:1px solid #a0ffc42b;border-radius:22px;background:#041b14;box-shadow:inset 0 0 20px #0008}
-.roulette-pointer {position:absolute;left:50%;z-index:3;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent}
-.roulette-pointer.top {top:0;border-bottom:0;border-top:15px solid #d6ff35}
-.roulette-pointer.bottom {bottom:0;border-top:0;border-bottom:15px solid #d6ff35}
-.roulette-track {display:flex;align-items:stretch;gap:10px;width:max-content;min-width:max-content;overflow:visible;transition:transform 3s cubic-bezier(.12,.72,.08,1);padding:18px 0;will-change:transform}
-.roulette-prize {flex:0 0 118px;width:118px;box-sizing:border-box;min-height:142px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:10px 5px;border:1px solid #baffc02e;border-radius:20px;background:#ffffff0c;text-align:center;color:#fff;font-weight:800}
-.roulette-prize .prize-emoji {display:block;flex:0 0 auto;font-size:48px;line-height:1.15;opacity:1;visibility:visible;filter:drop-shadow(0 4px 5px #0006)}
-.roulette-prize .prize-label {display:block;font-size:14px;line-height:1.2;color:#fff;opacity:1;visibility:visible}
-.roulette-prize.winner {border:3px solid #d6ff35;background:#d6ff3526;box-shadow:0 0 18px #d6ff35, inset 0 0 18px #d6ff3526;transform:scale(.98)}
-.roulette-modes {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:13px 0}
-.roulette-mode {margin:0;padding:13px 8px;border:1px solid #8dffc045;border-radius:16px;background:#ffffff0b;color:#fff;font-weight:800}
-.roulette-mode.active {border:2px solid #d6ff35;background:#d6ff3519;color:#e5ff68;box-shadow:0 0 15px #d6ff3520}
-.roulette-start {width:100%;margin:7px 0 0;padding:16px;border-radius:18px;background:linear-gradient(135deg,#dcff3d,#9cff48);color:#17351b;font-size:19px;font-weight:900;box-shadow:0 0 22px #cfff393d}
-.roulette-note {min-height:22px;margin-top:10px;text-align:center;color:#d7ffe6;font-size:13px}
-@media(max-width:360px){.roulette-art{width:74px;height:74px;flex-basis:74px;font-size:46px}.roulette-title{font-size:18px}.roulette-prize{flex-basis:100px}}
+def connect():
+    c = sqlite3.connect(DB_PATH, timeout=15)
+    c.row_factory = sqlite3.Row
+    c.execute("PRAGMA busy_timeout=15000")
+    return c
 
-.tasks-section {
-  margin: 22px 0;
-  padding: 18px;
-  color: #fff;
-  border: 2px solid #62d9ff;
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 90% 0%, #5742a555 0%, transparent 42%),
-    linear-gradient(135deg, rgba(9, 38, 92, 0.96), rgba(23, 45, 112, 0.94) 55%, rgba(48, 27, 101, 0.96));
-  box-shadow:
-    0 0 18px #42caff25,
-    inset 0 0 20px #66caff12;
-}
+def init_db():
+    with connect() as c:
+        c.execute("""CREATE TABLE IF NOT EXISTS players (
+            user_id TEXT PRIMARY KEY, username TEXT NOT NULL DEFAULT '',
+            coins INTEGER NOT NULL DEFAULT 100, last_daily INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL)""")
+        c.execute("""CREATE TABLE IF NOT EXISTS inventory (
+            user_id TEXT NOT NULL, item_id TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 1,
+            PRIMARY KEY(user_id,item_id))""")
+        c.execute("""CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL,
+            kind TEXT NOT NULL, amount INTEGER NOT NULL, created_at INTEGER NOT NULL)""")
+        c.execute("""CREATE TABLE IF NOT EXISTS pending_gifts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL, prize_id TEXT NOT NULL, name TEXT NOT NULL,
+            emoji TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+            created_at INTEGER NOT NULL)""")
+init_db()
 
-.tasks-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: 12px;
-}
+def validate_init_data(init_data: str):
+    if not BOT_TOKEN:
+        raise HTTPException(503, "BOT_TOKEN не настроен: серверная проверка Telegram пока недоступна")
+    pairs = dict(parse_qsl(init_data, keep_blank_values=True))
+    received_hash = pairs.pop("hash", None)
+    if not received_hash:
+        raise HTTPException(401, "Нет hash в Telegram initData")
+    data_check = "\n".join(f"{k}={v}" for k, v in sorted(pairs.items()))
+    secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+    calculated = hmac.new(secret_key, data_check.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calculated, received_hash):
+        raise HTTPException(401, "Неверная подпись Telegram initData")
+    try:
+        user = json.loads(pairs["user"])
+        if not user.get("id"):
+            raise ValueError()
+        return str(user["id"]), user.get("username") or user.get("first_name") or "Игрок"
+    except Exception:
+        raise HTTPException(401, "Не удалось прочитать пользователя Telegram")
 
-.tasks-heading h2 {
-  margin: 0;
-  padding: 0;
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: 600;
-  color: #fff;
-}
+def get_player(authorization: Optional[str]):
+    if authorization and authorization.startswith("tma "):
+        uid, username = validate_init_data(authorization[4:])
+    elif ALLOW_DEMO_AUTH:
+        uid, username = "demo-android-user", "Игрок"
+    else:
+        raise HTTPException(401, "Открой игру через Telegram")
+    with connect() as c:
+        c.execute("INSERT OR IGNORE INTO players(user_id, username, coins, created_at) VALUES(?,?,100,?)",
+                  (uid, username, int(time.time())))
+        c.execute("UPDATE players SET username=? WHERE user_id=?", (username, uid))
+        row = c.execute("SELECT * FROM players WHERE user_id=?", (uid,)).fetchone()
+    return dict(row)
 
-.tasks-show-all {
-  display: block;
-  width: auto;
-  flex: 0 0 auto;
-  margin: 0 0 0 auto;
-  padding: 0;
-  border: none !important;
-  border-radius: 0;
-  background: transparent !important;
-  color: #fff;
-  font-family: inherit;
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: none !important;
-  appearance: none;
-  -webkit-appearance: none;
-}
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return (BASE / "static" / "index.html").read_text(encoding="utf-8")
 
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+@app.get("/api/state")
+def state(authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    with connect() as c:
+        rows = c.execute("SELECT item_id, quantity FROM inventory WHERE user_id=? ORDER BY item_id", (p["user_id"],)).fetchall()
+        gifts = c.execute("""SELECT id, prize_id, name, emoji, status, created_at
+                             FROM pending_gifts WHERE user_id=? ORDER BY id DESC""", (p["user_id"],)).fetchall()
+    inventory = [{"id": r["item_id"], **ITEMS[r["item_id"]], "quantity": r["quantity"]} for r in rows if r["item_id"] in ITEMS]
+    pending_gifts = [dict(r) for r in gifts]
+    now = int(time.time())
+    return {"player": {"name": p["username"], "coins": p["coins"]}, "inventory": inventory,
+            "pending_gifts": pending_gifts, "daily_available": now - p["last_daily"] >= 86400,
+            "items": ITEMS}
 
+@app.post("/api/daily")
+def daily(authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    now = int(time.time())
+    with connect() as c:
+        row = c.execute("SELECT last_daily FROM players WHERE user_id=?", (p["user_id"],)).fetchone()
+        if now - row["last_daily"] < 86400:
+            raise HTTPException(400, "Бонус уже получен. Возвращайся завтра!")
+        c.execute("UPDATE players SET coins=coins+50, last_daily=? WHERE user_id=?", (now, p["user_id"]))
+        c.execute("INSERT INTO transactions(user_id,kind,amount,created_at) VALUES(?,?,?,?)",
+                  (p["user_id"], "daily_bonus", 50, now))
+    return {"ok": True, "message": "Бабл дарит тебе +50 монет!"}
 
-.task-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  margin: 0;
-  padding: 12px 0;
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: #fff;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
+@app.post("/api/open-box")
+def open_box(authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    price = 30
+    roll = secrets.randbelow(100)
+    item_id = "blue_cap" if roll < 55 else "star_sneakers" if roll < 82 else "bubble_hoodie" if roll < 97 else "golden_crown"
+    now = int(time.time())
+    with connect() as c:
+        row = c.execute("SELECT coins FROM players WHERE user_id=?", (p["user_id"],)).fetchone()
+        if row["coins"] < price:
+            raise HTTPException(400, "Не хватает монет. Забери ежедневный бонус!")
+        c.execute("UPDATE players SET coins=coins-? WHERE user_id=?", (price, p["user_id"]))
+        c.execute("""INSERT INTO inventory(user_id,item_id,quantity) VALUES(?,?,1)
+                     ON CONFLICT(user_id,item_id) DO UPDATE SET quantity=quantity+1""", (p["user_id"], item_id))
+        c.execute("INSERT INTO transactions(user_id,kind,amount,created_at) VALUES(?,?,?,?)",
+                  (p["user_id"], "open_box", -price, now))
+    return {"ok": True, "item": {"id": item_id, **ITEMS[item_id]}}
 
-.task-card:last-child {
-  border-bottom: none;
-}
+class RouletteSpin(BaseModel):
+    mode: str = "free"
 
-.task-card:active {
-  opacity: 0.7;
-}
+@app.post("/api/roulette/spin")
+def roulette_spin(body: RouletteSpin, authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    if body.mode not in ("free", "paid"):
+        raise HTTPException(400, "Неизвестный режим рулетки")
 
-.task-card[hidden] {
-  display: none;
-}
+    now = int(time.time())
+    with connect() as c:
+        # BEGIN IMMEDIATE предотвращает параллельные списания/начисления.
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT coins FROM players WHERE user_id=?", (p["user_id"],)).fetchone()
+        if body.mode == "paid" and row["coins"] < 100:
+            raise HTTPException(400, "Недостаточно Пузырьков. Нужно 100 🫧")
 
-.task-icon {
-  flex: 0 0 46px;
-  width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 13px;
-  background: #354b89;
-  font-size: 26px;
-}
+        if body.mode == "paid":
+            c.execute("UPDATE players SET coins=coins-100 WHERE user_id=?", (p["user_id"],))
+            c.execute("INSERT INTO transactions(user_id,kind,amount,created_at) VALUES(?,?,?,?)",
+                      (p["user_id"], "roulette_paid", -100, now))
 
-.task-info {
-  flex: 1;
-  min-width: 0;
-}
+        prize = secrets.choice(
+            [prize for prize in ROULETTE_PRIZES for _ in range(prize["weight"])]
+        )
+        if prize["kind"] == "coins":
+            amount = prize["amount"]
+            c.execute("UPDATE players SET coins=coins+? WHERE user_id=?", (amount, p["user_id"]))
+            c.execute("INSERT INTO transactions(user_id,kind,amount,created_at) VALUES(?,?,?,?)",
+                      (p["user_id"], "roulette_prize:" + prize["id"], amount, now))
+        elif prize["kind"] == "gift":
+            gift_cursor = c.execute("""INSERT INTO pending_gifts(user_id,prize_id,name,emoji,status,created_at)
+                                        VALUES(?,?,?,?, 'pending', ?)""",
+                                     (p["user_id"], prize["id"], prize["name"], prize["emoji"], now))
+            gift_id = gift_cursor.lastrowid
+            c.execute("INSERT INTO transactions(user_id,kind,amount,created_at) VALUES(?,?,0,?)",
+                      (p["user_id"], "roulette_gift:" + prize["id"], now))
+        else:
+            c.execute("INSERT INTO transactions(user_id,kind,amount,created_at) VALUES(?,?,0,?)",
+                      (p["user_id"], "roulette_empty", now))
 
-.task-name {
-  font-size: 15px;
-  font-weight: bold;
-  margin-bottom: 4px;
-}
+        updated = c.execute("SELECT coins FROM players WHERE user_id=?", (p["user_id"],)).fetchone()
+        if prize["kind"] != "gift":
+            gift_id = None
 
-.task-description {
-  font-size: 12px;
-  line-height: 1.4;
-  color: #c4d9ff;
-}
-
-.task-arrow {
-  color: #9ceaff;
-  font-size: 23px;
-}
-    
-/* Нижнее меню навигации */
-.bottom-nav {
-  position: fixed;
-  z-index: 1000;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 480px;
-  display: flex;
-  justify-content: space-around;
-  gap: 8px;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  background: rgba(8, 20, 55, 0.96);
-  border-top: 1px solid #62d9ff80;
-  box-shadow: 0 -5px 20px #0005;
-  backdrop-filter: blur(14px);
-}
-
-.nav-item {
-  flex: 1;
-  width: auto;
-  min-width: 0;
-  margin: 0;
-  padding: 8px 4px;
-  border: 1px solid transparent;
-  border-radius: 14px;
-  background: transparent;
-  color: #b8c9f5;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-}
-
-.nav-icon {
-  font-size: 23px;
-  line-height: 1;
-}
-
-.nav-item.active {
-  color: #8ceaff;
-  background: #3d78c933;
-  border-color: #62d9ff65;
-}
-
-body {
-  padding-bottom: 100px;
-}
-
-[hidden] {
-  display: none !important;
-}
-  
-/* Витрина призов под карточкой рулетки */
-.roulette-inside { margin: 18px 0 20px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.roulette-inside h2 { margin: 0 0 6px; font-size: 20px; color: #fff; text-shadow: 0 0 10px #70ffb2a0; }
-.roulette-inside-intro { margin: 0 0 13px; color: #bfeedd; font-size: 13px; line-height: 1.45; }
-.roulette-preview-track {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  max-height: none;
-  overflow: visible;
-  padding: 5px 2px 12px;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #39795b #08271d;
-}
-.roulette-preview-item {
-  width: 100%;
-  min-width: 0;
-  aspect-ratio: 1 / 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 13px;
-  padding: 10px 4px;
-  border: 2px solid #39795b;
-  border-radius: 25px;
-  background: #174633;
-  color: #fff;
-  text-align: center;
-  box-shadow: inset 0 0 12px #8cffc20b;
-}
-.roulette-preview-item .prize-emoji {
-  display: block;
-  font-size: clamp(32px, 9vw, 48px);
-  line-height: 1.1;
-  filter: drop-shadow(0 0 7px #72ffc755);
-}
-.roulette-preview-item .prize-label {
-  display: block;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  font-size: clamp(13px, 3.8vw, 17px);
-  line-height: 1.2;
-  font-weight: 800;
-  color: #f6fffb;
-}
-@media (max-width: 360px) {
-  .roulette-preview-track { gap: 7px; }
-  .roulette-preview-item { border-radius: 18px; gap: 9px; padding: 8px 3px; }
-  .roulette-preview-item .prize-emoji { font-size: 32px; }
-  .roulette-preview-item .prize-label { font-size: 12px; }
-}
-.roulette-inside-caption { margin: 2px 0 10px; color: #8fffd0; font-size: 13px; font-weight: 800; }
-.roulette-inside-note { margin-top: 8px; font-size: 12px; color: #a9d9c7; line-height: 1.45; }
-
-</style>
-</head>
-<body>
-<div class="app">
-  <section id="homeScreen">
-    <div class="player-panel">
-      <div class="player-name" aria-hidden="true">
-        <img class="player-avatar" id="playerAvatar" src="/static/bubble.png" alt="Фото игрока">
-        <span id="playerName">Игрок</span>
-      </div>
-      <img class="player-avatar" id="playerAvatarVisible" src="/static/bubble.png" alt="Фото игрока">
-      <div class="player-caption balance-caption">Ваш баланс</div>
-      <div class="player-balance">
-        <strong>
-          <img class="bubble-icon" src="/static/bubble.png" alt="Пузырёк">
-          <span id="coins">Загрузка…</span>
-        </strong>
-        <button class="balance-plus" id="balancePlus" type="button" aria-label="Пополнить баланс" title="Пополнить Пузырьки">+</button>
-      </div>
-    </div>
-
-    <div class="roulette-card" id="rouletteCard" role="button" tabindex="0" aria-label="Открыть рулетку">
-      <div>
-        <div class="roulette-title">Рулетка подарков</div>
-        <div class="roulette-subtitle">Испытай удачу и получи подарок!</div>
-        <button class="roulette-button" id="openRoulette" type="button">Открыть рулетку</button>
-      </div>
-      <div class="roulette-art" aria-hidden="true">🎁</div>
-    </div>
-
-
-<section class="tasks-section" id="homeTasksSection">
-    <div class="tasks-heading">
-      <h2>Задания</h2>
-      <button class="tasks-show-all" id="tasksToggleHome" type="button" aria-expanded="false">Все</button>
-    </div>
-    <div class="tasks-list" id="homeTasksList">
-      <div class="task-card" role="button" tabindex="0" data-task="daily">
-        <div class="task-icon">🎁</div>
-        <div class="task-info">
-          <div class="task-name">Ежедневный бонус</div>
-          <div class="task-description">Забери бесплатные Пузырьки</div>
-        </div>
-        <span class="task-arrow">›</span>
-      </div>
-      <div class="task-card" role="button" tabindex="0" data-task="box">
-        <div class="task-icon">📦</div>
-        <div class="task-info">
-          <div class="task-name">Открой коробку</div>
-          <div class="task-description">Получи случайный подарок</div>
-        </div>
-        <span class="task-arrow">›</span>
-      </div>
-      <div class="task-card" role="button" tabindex="0" data-task="collection">
-        <div class="task-icon">🧸</div>
-        <div class="task-info">
-          <div class="task-name">Собери коллекцию</div>
-          <div class="task-description">Пополняй коллекцию подарков</div>
-        </div>
-        <span class="task-arrow">›</span>
-      </div>
-      <div class="task-card extra-task" role="button" tabindex="0" hidden>
-        <div class="task-icon">🫧</div>
-        <div class="task-info">
-          <div class="task-name">Собери Пузырьки</div>
-          <div class="task-description">Заглядывай в игру каждый день</div>
-        </div>
-        <span class="task-arrow">›</span>
-      </div>
-      <div class="task-card extra-task" role="button" tabindex="0" hidden>
-        <div class="task-icon">🌟</div>
-        <div class="task-info">
-          <div class="task-name">Загляни завтра</div>
-          <div class="task-description">Возвращайся за новыми наградами</div>
-        </div>
-        <span class="task-arrow">›</span>
-      </div>
-    </div>
-  </section>
-
-  </section>
-
-
-  <section class="tasks-section" id="tasksScreen" hidden>
-      <div class="tasks-heading">
-        <h2>Задания</h2>
-        <button class="tasks-show-all" id="tasksToggle" type="button" aria-expanded="false">Все</button>
-      </div>
-      <div class="tasks-list" id="tasksList">
-        <div class="task-card" role="button" tabindex="0" data-task="daily">
-          <div class="task-icon">🎁</div>
-          <div class="task-info">
-            <div class="task-name">Ежедневный бонус</div>
-            <div class="task-description">Забери бесплатные Пузырьки</div>
-          </div>
-          <span class="task-arrow">›</span>
-        </div>
-        <div class="task-card" role="button" tabindex="0" data-task="box">
-          <div class="task-icon">📦</div>
-          <div class="task-info">
-            <div class="task-name">Открой коробку</div>
-            <div class="task-description">Получи случайный подарок</div>
-          </div>
-          <span class="task-arrow">›</span>
-        </div>
-        <div class="task-card" role="button" tabindex="0" data-task="collection">
-          <div class="task-icon">🧸</div>
-          <div class="task-info">
-            <div class="task-name">Собери коллекцию</div>
-            <div class="task-description">Пополняй коллекцию подарков</div>
-          </div>
-          <span class="task-arrow">›</span>
-        </div>
-        <div class="task-card extra-task" role="button" tabindex="0" hidden>
-          <div class="task-icon">🫧</div>
-          <div class="task-info">
-            <div class="task-name">Собери Пузырьки</div>
-            <div class="task-description">Заглядывай в игру каждый день</div>
-          </div>
-          <span class="task-arrow">›</span>
-        </div>
-        <div class="task-card extra-task" role="button" tabindex="0" hidden>
-          <div class="task-icon">🌟</div>
-          <div class="task-info">
-            <div class="task-name">Загляни завтра</div>
-            <div class="task-description">Возвращайся за новыми наградами</div>
-          </div>
-          <span class="task-arrow">›</span>
-        </div>
-      </div>
-    </section>
-
-
-  <section id="profileScreen" hidden>
-    <div class="player-panel">
-      <div class="player-name">👤 Профиль игрока</div>
-      <div class="player-caption">Твоя игровая информация</div>
-      <div style="margin-top: 18px;">
-        <div class="player-caption">Имя игрока</div>
-        <div class="player-name" id="profileName">🩵 Игрок</div>
-      </div>
-      <div style="margin-top: 18px;">
-        <div class="player-caption">Баланс пузырьков</div>
-        <div class="player-name">🫧 <span id="profileCoins">0</span></div>
-      </div>
-    </div>
-  </section>
-
-  <div class="roulette-overlay" id="rouletteOverlay" hidden>
-    <section class="roulette-modal" role="dialog" aria-modal="true" aria-labelledby="rouletteHeading">
-      <div class="roulette-modal-head">
-        <h2 id="rouletteHeading">Рулетка подарков</h2>
-        <div class="roulette-wallet">🫧 <span id="rouletteCoins">—</span></div>
-        <button class="roulette-close" id="closeRoulette" type="button" aria-label="Закрыть">×</button>
-      </div>
-      <div class="roulette-window">
-        <span class="roulette-pointer top"></span>
-        <div class="roulette-track" id="rouletteTrack">
-          <div class="roulette-prize"><span class="prize-emoji">🎂</span><span class="prize-label">Торт</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">💐</span><span class="prize-label">Букет</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🚀</span><span class="prize-label">Ракета</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🍾</span><span class="prize-label">Шампанское</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🎁</span><span class="prize-label">Подарок</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🌹</span><span class="prize-label">Роза</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">💝</span><span class="prize-label">Сердце</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🧸</span><span class="prize-label">Мишка</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+250</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+100</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+50</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+25</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+10</span></div>
-          <div class="roulette-prize"><span class="prize-emoji">➖</span><span class="prize-label">Пусто</span></div>
-        </div>
-        <span class="roulette-pointer bottom"></span>
-      </div>
-      <button class="roulette-start" id="spinRoulette" type="button">Крутить бесплатно</button>
-      <div class="roulette-note" id="rouletteNote">Выбери режим и крути рулетку!</div>
-      <div class="roulette-modes">
-        <button class="roulette-mode active" data-mode="free" type="button">🆓 Бесплатно</button>
-        <button class="roulette-mode" data-mode="paid" type="button">🫧 За 100</button>
-      </div>
-      <section class="roulette-inside" aria-labelledby="rouletteInsideTitle">
-        <h2 id="rouletteInsideTitle">Что внутри</h2>
-        <div class="roulette-preview-track" aria-label="Возможные призы рулетки">
-        <div class="roulette-preview-item"><span class="prize-emoji">🎂</span><span class="prize-label">Торт</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">💐</span><span class="prize-label">Букет</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🚀</span><span class="prize-label">Ракета</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🍾</span><span class="prize-label">Шампанское</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🎁</span><span class="prize-label">Подарок</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🌹</span><span class="prize-label">Роза</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">💝</span><span class="prize-label">Сердце</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🧸</span><span class="prize-label">Мишка</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🫧</span><span class="prize-label">+250</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🫧</span><span class="prize-label">+100</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🫧</span><span class="prize-label">+50</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🫧</span><span class="prize-label">+25</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">🫧</span><span class="prize-label">+10</span></div>
-        <div class="roulette-preview-item"><span class="prize-emoji">➖</span><span class="prize-label">Пусто</span></div>
-      </div>
-      </section>
-    </section>
-  </div>
-
-  <nav class="bottom-nav" aria-label="Главное меню">
-    <button class="nav-item active" data-screen="homeScreen" aria-current="page">
-      <span class="nav-icon">🏠</span><span>Главная</span>
-    </button>
-    <button class="nav-item" data-screen="tasksScreen">
-      <span class="nav-icon">🎯</span><span>Задания</span>
-    </button>
-    <button class="nav-item" data-screen="profileScreen">
-      <span class="nav-icon">👤</span><span>Профиль</span>
-    </button>
-  </nav>
-</div>
-
-<script>
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
-
-const coinsEl = document.getElementById("coins");
-const playerNameEl = document.getElementById("playerName");
-const playerAvatarEl = document.getElementById("playerAvatar");
-const playerAvatarVisibleEl = document.getElementById("playerAvatarVisible");
-const profileNameEl = document.getElementById("profileName");
-const profileCoinsEl = document.getElementById("profileCoins");
-const telegramUser = tg.initDataUnsafe?.user;
-
-if (telegramUser) {
-  playerNameEl.textContent =
-    telegramUser.first_name || telegramUser.username || "Игрок";
-  if (telegramUser.photo_url) {
-    playerAvatarEl.src = telegramUser.photo_url;
-    playerAvatarVisibleEl.src = telegramUser.photo_url;
-  }
-}
-
-async function api(path, method = "GET") {
-  const headers = {};
-  if (tg.initData) headers.Authorization = "tma " + tg.initData;
-  const response = await fetch(path, { method, headers });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.detail || "Не удалось выполнить действие");
-  }
-  return data;
-}
-
-function render(data) {
-  const player = data.player || data;
-  if (player.coins !== undefined) {
-    const balance = Number(player.coins).toLocaleString("ru-RU");
-    coinsEl.textContent = balance;
-    profileCoinsEl.textContent = balance;
-    const rouletteCoinsEl = document.getElementById("rouletteCoins");
-    if (rouletteCoinsEl) rouletteCoinsEl.textContent = balance;
-  }
-  profileNameEl.textContent = playerNameEl.textContent;
-}
-
-async function loadGame() {
-  try {
-    const data = await api("/api/state");
-    render(data);
-  } catch (error) {
-    coinsEl.textContent = "—";
-    profileCoinsEl.textContent = "—";
-    console.error("Не удалось загрузить баланс:", error);
-  }
-}
-
-let busy = false;
-
-async function performTask(path, successText) {
-  if (busy) return;
-  busy = true;
-  try {
-    await api(path, "POST");
-    const updated = await api("/api/state");
-    render(updated);
-    alert(successText);
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    busy = false;
-  }
-}
-
-document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
-  task.addEventListener("click", function () {
-    const type = task.dataset.task;
-    if (type === "daily") {
-      performTask("/api/daily", "🎉 Ежедневный бонус получен!");
-    } else if (type === "box") {
-      performTask("/api/open-box", "🎁 Коробка открыта!");
-    } else if (type === "collection") {
-      document.querySelector('[data-screen="profileScreen"]').click();
-    }
-  });
-});
-
-document.getElementById("balancePlus").addEventListener("click", function () {
-  alert("🌟 Пополнение Пузырьков через Telegram Stars скоро появится!");
-});
-
-
-// Рулетка: прокрутка видна, выбранный приз останавливается ровно под указателем.
-// Выигрыш пока демонстрационный: серверное начисление призов подключается отдельно.
-(function setupRoulette() {
-  const overlay = document.getElementById('rouletteOverlay');
-  const open = document.getElementById('openRoulette');
-  const card = document.getElementById('rouletteCard');
-  const close = document.getElementById('closeRoulette');
-  const modes = Array.from(document.querySelectorAll('.roulette-mode'));
-  const start = document.getElementById('spinRoulette');
-  const track = document.getElementById('rouletteTrack');
-  const note = document.getElementById('rouletteNote');
-  const windowEl = track.parentElement;
-  let mode = 'free';
-  let spinning = false;
-  const prizes = [
-    {emoji:'🎂',name:'Торт'}, {emoji:'💐',name:'Букет'}, {emoji:'🚀',name:'Ракета'},
-    {emoji:'🍾',name:'Шампанское'}, {emoji:'🎁',name:'Подарок'}, {emoji:'🌹',name:'Роза'},
-    {emoji:'💝',name:'Сердце'}, {emoji:'🧸',name:'Мишка'}, {emoji:'🫧',name:'+250'},
-    {emoji:'🫧',name:'+100'}, {emoji:'🫧',name:'+50'}, {emoji:'🫧',name:'+25'},
-    {emoji:'🫧',name:'+10'}, {emoji:'➖',name:'Пусто'}
-  ];
-
-  function renderPrizes(list) {
-    track.innerHTML = '';
-    list.forEach(function(prize, i) {
-      const item = document.createElement('div');
-      item.className = 'roulette-prize';
-      item.dataset.prizeIndex = String(i % prizes.length);
-      item.innerHTML = '<span class="prize-emoji"></span><span class="prize-label"></span>';
-      item.querySelector('.prize-emoji').textContent = prize.emoji;
-      item.querySelector('.prize-label').textContent = prize.name;
-      track.appendChild(item);
-    });
-  }
-  renderPrizes(prizes);
-
-  function show() {
-    overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
-    // При каждом открытии показываем ленту с начала, без старого смещения.
-    if (!spinning) {
-      renderPrizes(prizes);
-      track.style.transition = 'none';
-      track.style.transform = 'translateX(0px)';
-    }
-  }
-  function hide() {
-    if (spinning) return;
-    overlay.hidden = true;
-    document.body.style.overflow = '';
-  }
-  open.addEventListener('click', function(e){e.stopPropagation();show();});
-  card.addEventListener('click', show);
-  card.addEventListener('keydown', function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
-  close.addEventListener('click', hide);
-  overlay.addEventListener('click', function(e){if(e.target===overlay)hide();});
-
-  modes.forEach(function(btn){btn.addEventListener('click',function(){
-    if(spinning)return;
-    mode=btn.dataset.mode;
-    modes.forEach(x=>x.classList.toggle('active',x===btn));
-    start.textContent=mode==='free'?'Крутить бесплатно':'Крутить за 🫧 100';
-    note.textContent=mode==='free'?'Бесплатный режим — крути сколько угодно':'Стоимость одного прокрута — 100 Пузырьков';
-  });});
-
-  start.addEventListener('click', function(){
-    if(spinning)return;
-    if(mode!=='free') {
-      const current=Number((document.getElementById('coins').textContent||'0').replace(/\s/g,'').replace(',','.'));
-      if(!Number.isFinite(current)||current<100){note.textContent='Недостаточно Пузырьков. Нужно 100 🫧';return;}
-      note.textContent='Платная рулетка пока не подключена к серверу — Пузырьки не списаны.';
-      return;
+    return {
+        "ok": True,
+        "prize": {"id": prize["id"], "name": prize["name"], "emoji": prize["emoji"],
+                  "kind": prize["kind"], "amount": prize.get("amount", 0), "gift_id": gift_id},
+        "coins": updated["coins"],
+        "message": ("Начислено +" + str(prize["amount"]) + " Пузырьков!" if prize["kind"] == "coins"
+                    else "Подарок добавлен в раздел «На вывод»!" if prize["kind"] == "gift"
+                    else "В этот раз пусто. Попробуй ещё раз!")
     }
 
-    spinning=true;
-    start.disabled=true;
-    modes.forEach(x=>x.disabled=true);
-    note.textContent='Крутим… смотри, какой приз остановится под стрелкой!';
+@app.get("/api/withdrawals")
+def withdrawals(authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    with connect() as c:
+        rows = c.execute("""SELECT id, prize_id, name, emoji, status, created_at
+                            FROM pending_gifts WHERE user_id=? ORDER BY id DESC""", (p["user_id"],)).fetchall()
+    return {"ok": True, "gifts": [dict(r) for r in rows]}
 
-    // Несколько повторов ленты дают настоящую видимую прокрутку, а не скачок к результату.
-    const loops=7;
-    const longList=[];
-    for(let i=0;i<loops;i++) longList.push(...prizes);
-    renderPrizes(longList);
-    const children=Array.from(track.children);
-    children.forEach(x=>x.classList.remove('winner'));
-    track.style.transition='none';
-    track.style.transform='translateX(0px)';
-    void track.offsetWidth;
+@app.get("/api/health")
+def health():
+    return {"ok": True, "app": "Babl Gifts"}
 
-    const winIndex=Math.floor(Math.random()*prizes.length);
-    const targetIndex=prizes.length*5+winIndex;
-    const targetCard=children[targetIndex];
-    const targetCenter=targetCard.offsetLeft+targetCard.offsetWidth/2;
-    const desiredX=targetCenter-windowEl.clientWidth/2;
-    const maxX=Math.max(0,track.scrollWidth-windowEl.clientWidth);
-    const finalX=Math.min(maxX,Math.max(0,desiredX));
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    update = await request.json()
+    message = update.get("message", {})
+    text = message.get("text", "")
+    chat = message.get("chat", {})
+    chat_id = chat.get("id")
+    if text == "/start" and chat_id:
+        keyboard = {"inline_keyboard": [[{"text": "🎁 Открыть Бабл Подарки",
+                                          "web_app": {"url": "https://babl-gifts.onrender.com"}}]]}
+        payload = {"chat_id": chat_id,
+                   "text": "Привет! 👋 Добро пожаловать в «Бабл Подарки»!\n\nОткрывай виртуальные коробки, собирай подарки и забирай ежедневные монеты. 🎁",
+                   "reply_markup": keyboard}
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json=payload)
+            response.raise_for_status()
+    return {"ok": True}
 
-    // Короткий старт и длинное замедление создают эффект прокрутки рулетки.
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        track.style.transition='transform 5.2s cubic-bezier(.08,.72,.08,1)';
-        track.style.transform='translateX(-'+finalX+'px)';
-      });
-    });
-
-    window.setTimeout(function(){
-      children.forEach(x=>x.classList.remove('winner'));
-      targetCard.classList.add('winner');
-      note.textContent='🎉 Выпало: '+prizes[winIndex].emoji+' '+prizes[winIndex].name+'!';
-      spinning=false;
-      start.disabled=false;
-      modes.forEach(x=>x.disabled=false);
-    },5350);
-  });
-})();
-
-
-loadGame();
-</script>
-
-<script>
-(function () {
-  document.querySelectorAll(".tasks-section .tasks-show-all").forEach(function (toggle) {
-    const section = toggle.closest(".tasks-section");
-    const extras = section.querySelectorAll(".extra-task");
-
-    extras.forEach(function (task) { task.hidden = true; });
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.textContent = "Все";
-
-    toggle.addEventListener("click", function () {
-      const expanded = toggle.getAttribute("aria-expanded") === "true";
-      extras.forEach(function (task) { task.hidden = expanded; });
-      toggle.setAttribute("aria-expanded", String(!expanded));
-      toggle.textContent = expanded ? "Все" : "Свернуть";
-    });
-  });
-})();
-</script>
-  
-<script>
-(function () {
-  const buttons = document.querySelectorAll(".nav-item");
-
-  buttons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      const target = button.dataset.screen;
-
-      document.getElementById("homeScreen").hidden = target !== "homeScreen";
-      document.getElementById("tasksScreen").hidden = target !== "tasksScreen";
-      document.getElementById("profileScreen").hidden = target !== "profileScreen";
-
-      buttons.forEach(function (item) {
-        const active = item === button;
-        item.classList.toggle("active", active);
-        item.setAttribute("aria-current", active ? "page" : "false");
-      });
-
-      const playerName = document.getElementById("playerName");
-      const profileName = document.getElementById("profileName");
-      const coins = document.getElementById("coins");
-      const profileCoins = document.getElementById("profileCoins");
-
-      if (playerName && profileName) {
-        profileName.textContent = playerName.textContent;
-      }
-
-      if (coins && profileCoins) {
-        profileCoins.textContent = coins.textContent;
-      }
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  });
-})();
-</script>
-</body>
-</html>
+@app.on_event("startup")
+async def register_telegram_webhook():
+    if not BOT_TOKEN:
+        print("BOT_TOKEN не настроен — Telegram webhook не подключён")
+        return
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post("https://api.telegram.org/bot" + BOT_TOKEN + "/setWebhook",
+                                         json={"url": "https://babl-gifts.onrender.com/telegram/webhook"})
+            print("Результат подключения Telegram:", response.text)
+            response.raise_for_status()
+    except Exception as exc:
+        print("Не удалось подключить Telegram webhook:", exc)
