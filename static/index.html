@@ -25,35 +25,83 @@
     }
     .app { max-width: 480px; margin: auto; }
     .player-panel {
-      background: rgba(5, 40, 30, 0.78);
-      border: 2px solid #78d8a0;
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(7, 18, 58, .92) 0%, rgba(10, 29, 79, .76) 42%, rgba(10, 29, 79, .06) 100%),
+        url("/static/balance-bg.png") center 48% / cover no-repeat;
+      border: 2px solid rgba(125, 219, 255, .95);
       border-radius: 24px;
       padding: 18px;
+      min-height: 190px;
       margin-bottom: 18px;
-      box-shadow: 0 8px 24px #0004;
+      box-shadow: 0 8px 24px #0005, inset 0 0 18px #7bdfff50;
+    }
+    .balance-heading {
+      color: #d9f5ff;
+      font-size: 15px;
+      font-weight: 800;
+      text-shadow: 0 2px 5px #00123f;
+      margin-bottom: 5px;
     }
     .player-name {
       font-size: 21px;
       font-weight: bold;
+      max-width: 68%;
       overflow-wrap: anywhere;
+      text-shadow: 0 2px 5px #00123f;
     }
     .player-caption {
-      color: #b9e8cf;
-      font-size: 13px;
-      margin-top: 5px;
+      color: #d5efff;
+      font-size: 12px;
+      margin-top: 4px;
+      text-shadow: 0 2px 5px #00123f;
     }
     .player-balance {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 15px;
-      padding-top: 12px;
-     border-top: 1px solid #ffffff30;
-   }
-   .player-balance strong {
-     font-size: 25px;
-   }
+      justify-content: flex-start;
+      gap: 10px;
+      margin-top: 18px;
+      width: fit-content;
+      max-width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #9cecffb8;
+      border-radius: 18px;
+      background: rgba(7, 20, 67, .78);
+      box-shadow: 0 4px 15px #0004;
+    }
+    .player-balance-label { display: none; }
+    .player-balance strong {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 25px;
+      text-shadow: 0 2px 5px #00123f;
+    }
+    .balance-plus {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      margin: 0;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid #fff3a5;
+      color: #6b2b00;
+      background: linear-gradient(145deg, #fff27a, #ffad19);
+      font-size: 30px;
+      line-height: 1;
+      box-shadow: 0 0 12px #ffcb3d9c;
+    }
+    @media (max-width: 380px) {
+      .player-panel { padding: 14px; min-height: 175px; }
+      .player-name { font-size: 18px; max-width: 72%; }
+      .player-balance strong { font-size: 21px; }
+      .balance-plus { width: 35px; height: 35px; flex-basis: 35px; }
+    }
     header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     h1 { font-size: 24px; margin: 8px 0; }
     .coins {
@@ -409,14 +457,15 @@ body {
 <div class="app">
   <section id="homeScreen">
     <div class="player-panel">
+      <div class="balance-heading">Ваш баланс</div>
       <div class="player-name" id="playerName">🩵 Игрок</div>
       <div class="player-caption">Добро пожаловать в Бабл Подарки!</div>
       <div class="player-balance">
-        <span>🫧 Твои Пузырьки</span>
         <strong>
           <img class="bubble-icon" src="/static/bubble.png" alt="Пузырёк">
           <span id="coins">Загрузка…</span>
         </strong>
+        <button class="balance-plus" id="balancePlus" type="button" aria-label="Пополнить баланс" title="Скоро">+</button>
       </div>
     </div>
 
