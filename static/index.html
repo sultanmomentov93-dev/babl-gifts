@@ -337,8 +337,42 @@
   .roulette-title { font-size: 18px; }
   .roulette-art { flex-basis: 100px; transform: scale(.9); }
 }
-    
 
+
+/* Рулетка Бабл Подарки */
+.roulette-card {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  width:100%; min-height:138px; margin:18px 0; padding:16px;
+  border:1px solid #8be8ff70; border-radius:22px;
+  background:linear-gradient(135deg,rgba(8,50,37,.94),rgba(5,30,26,.96));
+  box-shadow:0 0 20px #31e6ff20,inset 0 0 18px #76ffb515; cursor:pointer;
+}
+.roulette-title {font-size:21px;font-weight:900;color:#fff;text-shadow:0 0 10px #70eaff80;margin-bottom:5px}
+.roulette-subtitle {font-size:13px;color:#d3f7ff;line-height:1.4;margin-bottom:12px}
+.roulette-button {width:auto;margin:0;padding:11px 22px;border:1px solid #fff8;border-radius:14px;background:linear-gradient(135deg,#caff43,#7fffa9);color:#10382b;font-weight:900;box-shadow:0 0 18px #b8ff4d35}
+.roulette-art {width:94px;height:94px;flex:0 0 94px;border-radius:50%;display:grid;place-items:center;font-size:58px;background:radial-gradient(circle,#67ffe766,#0b5b3a 70%);border:3px solid #9cff5b;box-shadow:0 0 20px #80ff6c65;animation:wheelPulse 2s ease-in-out infinite}
+@keyframes wheelPulse {50%{transform:scale(1.04);filter:brightness(1.12)}}
+.roulette-overlay {position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,12,20,.82);backdrop-filter:blur(9px)}
+.roulette-modal {width:100%;max-width:460px;max-height:92vh;overflow:auto;padding:17px;border:1px solid #9effc16b;border-radius:25px;background:linear-gradient(160deg,#0c3a29,#071e1a 80%);box-shadow:0 0 30px #6aff8b24;color:#fff}
+.roulette-modal-head {display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.roulette-modal-head h2 {font-size:23px;margin:0;text-shadow:0 0 12px #8cffc5}
+.roulette-close {width:38px;height:38px;margin:0;padding:0;border-radius:50%;background:#ffffff14;color:#fff;border:1px solid #ffffff35;font-size:24px}
+.roulette-wallet {padding:9px 13px;border:1px solid #8dffc04f;border-radius:30px;background:#061d17;color:#fff;font-weight:800;white-space:nowrap}
+.roulette-window {position:relative;overflow:hidden;margin:10px 0 15px;padding:14px 8px;border:1px solid #a0ffc42b;border-radius:22px;background:#041b14;box-shadow:inset 0 0 20px #0008}
+.roulette-pointer {position:absolute;left:50%;z-index:3;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent}
+.roulette-pointer.top {top:0;border-top:0;border-bottom:15px solid #d6ff35}
+.roulette-pointer.bottom {bottom:0;border-bottom:0;border-top:15px solid #d6ff35}
+.roulette-track {display:flex;gap:10px;overflow:hidden;transition:transform 3s cubic-bezier(.12,.72,.08,1);padding:18px 0}
+.roulette-prize {flex:0 0 118px;min-height:142px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:10px 5px;border:1px solid #baffc02e;border-radius:20px;background:#ffffff0c;text-align:center;color:#fff;font-weight:800}
+.roulette-prize .prize-emoji {font-size:48px;filter:drop-shadow(0 4px 5px #0006)}
+.roulette-prize .prize-label {font-size:14px;line-height:1.2}
+.roulette-prize.winner {border:2px solid #d6ff35;box-shadow:0 0 18px #d6ff3540}
+.roulette-modes {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:13px 0}
+.roulette-mode {margin:0;padding:13px 8px;border:1px solid #8dffc045;border-radius:16px;background:#ffffff0b;color:#fff;font-weight:800}
+.roulette-mode.active {border:2px solid #d6ff35;background:#d6ff3519;color:#e5ff68;box-shadow:0 0 15px #d6ff3520}
+.roulette-start {width:100%;margin:7px 0 0;padding:16px;border-radius:18px;background:linear-gradient(135deg,#dcff3d,#9cff48);color:#17351b;font-size:19px;font-weight:900;box-shadow:0 0 22px #cfff393d}
+.roulette-note {min-height:22px;margin-top:10px;text-align:center;color:#d7ffe6;font-size:13px}
+@media(max-width:360px){.roulette-art{width:74px;height:74px;flex-basis:74px;font-size:46px}.roulette-title{font-size:18px}.roulette-prize{flex-basis:100px}}
 
 .tasks-section {
   margin: 22px 0;
@@ -539,20 +573,13 @@ body {
       </div>
     </div>
 
-    <div class="roulette-card" id="rouletteCard" role="button" tabindex="0"
-         aria-label="Открыть бесплатную рулетку">
-      <div class="roulette-info">
-        <div class="roulette-title">Бесплатная рулетка</div>
-        <div class="roulette-subtitle">Подарки и NFT без затрат</div>
-        <button class="roulette-button" type="button">Крутить</button>
+    <div class="roulette-card" id="rouletteCard" role="button" tabindex="0" aria-label="Открыть рулетку">
+      <div>
+        <div class="roulette-title">Рулетка подарков</div>
+        <div class="roulette-subtitle">Испытай удачу и получи подарок!</div>
+        <button class="roulette-button" id="openRoulette" type="button">Открыть рулетку</button>
       </div>
-      <div class="roulette-art" aria-hidden="true">
-        <div class="roulette-wheel">🎁</div>
-        <span class="roulette-bubble one"></span>
-        <span class="roulette-bubble two"></span>
-        <span class="roulette-bubble three"></span>
-        <div class="roulette-mascot">🫧</div>
-      </div>
+      <div class="roulette-art" aria-hidden="true">🎁</div>
     </div>
 <section class="tasks-section" id="homeTasksSection">
     <div class="tasks-heading">
@@ -671,6 +698,42 @@ body {
     </div>
   </section>
 
+  <div class="roulette-overlay" id="rouletteOverlay" hidden>
+    <section class="roulette-modal" role="dialog" aria-modal="true" aria-labelledby="rouletteHeading">
+      <div class="roulette-modal-head">
+        <h2 id="rouletteHeading">Рулетка подарков</h2>
+        <div class="roulette-wallet">🫧 <span id="rouletteCoins">—</span></div>
+        <button class="roulette-close" id="closeRoulette" type="button" aria-label="Закрыть">×</button>
+      </div>
+      <div class="roulette-window">
+        <span class="roulette-pointer top"></span>
+        <div class="roulette-track" id="rouletteTrack">
+          <div class="roulette-prize"><span class="prize-emoji">🎂</span><span class="prize-label">Торт</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">💐</span><span class="prize-label">Букет</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🚀</span><span class="prize-label">Ракета</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🍾</span><span class="prize-label">Шампанское</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🎁</span><span class="prize-label">Подарок</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🌹</span><span class="prize-label">Роза</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">💝</span><span class="prize-label">Сердце</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🧸</span><span class="prize-label">Мишка</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+250</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+100</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+50</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+25</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">🫧</span><span class="prize-label">+10</span></div>
+          <div class="roulette-prize"><span class="prize-emoji">➖</span><span class="prize-label">Пусто</span></div>
+        </div>
+        <span class="roulette-pointer bottom"></span>
+      </div>
+      <div class="roulette-modes">
+        <button class="roulette-mode active" data-mode="free" type="button">🆓 Бесплатно</button>
+        <button class="roulette-mode" data-mode="paid" type="button">🫧 За 100</button>
+      </div>
+      <button class="roulette-start" id="spinRoulette" type="button">Крутить бесплатно</button>
+      <div class="roulette-note" id="rouletteNote">Выбери режим и крути рулетку!</div>
+    </section>
+  </div>
+
   <nav class="bottom-nav" aria-label="Главное меню">
     <button class="nav-item active" data-screen="homeScreen" aria-current="page">
       <span class="nav-icon">🏠</span><span>Главная</span>
@@ -723,6 +786,8 @@ function render(data) {
     const balance = Number(player.coins).toLocaleString("ru-RU");
     coinsEl.textContent = balance;
     profileCoinsEl.textContent = balance;
+    const rouletteCoinsEl = document.getElementById("rouletteCoins");
+    if (rouletteCoinsEl) rouletteCoinsEl.textContent = balance;
   }
   profileNameEl.textContent = playerNameEl.textContent;
 }
@@ -771,6 +836,75 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
 document.getElementById("balancePlus").addEventListener("click", function () {
   alert("🌟 Пополнение Пузырьков через Telegram Stars скоро появится!");
 });
+
+
+// Окно и режимы рулетки. Результаты пока демонстрационные; серверную выдачу призов добавим отдельно.
+(function setupRoulette() {
+  const overlay = document.getElementById('rouletteOverlay');
+  const open = document.getElementById('openRoulette');
+  const card = document.getElementById('rouletteCard');
+  const close = document.getElementById('closeRoulette');
+  const modes = Array.from(document.querySelectorAll('.roulette-mode'));
+  const start = document.getElementById('spinRoulette');
+  const track = document.getElementById('rouletteTrack');
+  const note = document.getElementById('rouletteNote');
+  let mode = 'free';
+  let spinning = false;
+  const prizes = [
+    {emoji:'🎂',name:'Торт'}, {emoji:'💐',name:'Букет'}, {emoji:'🚀',name:'Ракета'},
+    {emoji:'🍾',name:'Шампанское'}, {emoji:'🎁',name:'Подарок'}, {emoji:'🌹',name:'Роза'},
+    {emoji:'💝',name:'Сердце'}, {emoji:'🧸',name:'Мишка'}, {emoji:'🫧',name:'+250'},
+    {emoji:'🫧',name:'+100'}, {emoji:'🫧',name:'+50'}, {emoji:'🫧',name:'+25'},
+    {emoji:'🫧',name:'+10'}, {emoji:'➖',name:'Пусто'}
+  ];
+  function show() { overlay.hidden = false; document.body.style.overflow = 'hidden'; }
+  function hide() { if (spinning) return; overlay.hidden = true; document.body.style.overflow = ''; }
+  open.addEventListener('click', function(e){e.stopPropagation();show();});
+  card.addEventListener('click', show);
+  card.addEventListener('keydown', function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
+  close.addEventListener('click', hide);
+  overlay.addEventListener('click', function(e){if(e.target===overlay)hide();});
+  modes.forEach(function(btn){btn.addEventListener('click',function(){
+    if(spinning)return; mode=btn.dataset.mode;
+    modes.forEach(x=>x.classList.toggle('active',x===btn));
+    start.textContent=mode==='free'?'Крутить бесплатно':'Крутить за 🫧 100';
+    note.textContent=mode==='free'?'Бесплатный режим':'Стоимость одного прокрута — 100 Пузырьков';
+  });});
+  start.addEventListener('click', async function(){
+    if(spinning)return;
+    if(mode==='free'){
+      const last=Number(localStorage.getItem('babl_free_roulette_at')||0);
+      const wait=12*60*60*1000-(Date.now()-last);
+      if(wait>0){const h=Math.floor(wait/3600000),m=Math.ceil((wait%3600000)/60000);note.textContent='Бесплатная рулетка будет доступна через '+h+' ч '+m+' мин.';return;}
+    } else {
+      const current=Number((document.getElementById('coins').textContent||'0').replace(/\s/g,'').replace(',','.'));
+      if(!Number.isFinite(current)||current<100){note.textContent='Недостаточно Пузырьков. Нужно 100 🫧';return;}
+      note.textContent='Платная рулетка подключится после добавления серверной проверки. Пузырьки не списаны.';return;
+    }
+    spinning=true; start.disabled=true; modes.forEach(x=>x.disabled=true); note.textContent='Рулетка крутится…';
+    const idx=Math.floor(Math.random()*prizes.length);
+    const children=Array.from(track.children); children.forEach(x=>x.classList.remove('winner'));
+    track.style.transition='none'; track.style.transform='translateX(0px)';
+    void track.offsetWidth;
+    const cardWidth=children[0].getBoundingClientRect().width+10;
+    const visibleWidth=track.parentElement.clientWidth;
+    const target=Math.max(0,idx*cardWidth-(visibleWidth/2-cardWidth/2));
+    track.style.transition='transform 3.1s cubic-bezier(.12,.72,.08,1)';
+    track.style.transform='translateX(-'+(target+cardWidth*prizes.length*2)+'px)';
+    // Финальный результат показываем в карточке-призе, без начисления фальшивого баланса.
+    setTimeout(function(){
+      const winner=children[idx];
+      children.forEach(x=>x.classList.remove('winner'));
+      winner.classList.add('winner');
+      track.style.transition='none';
+      track.style.transform='translateX(-'+Math.max(0,idx*cardWidth-(visibleWidth/2-cardWidth/2))+'px)';
+      localStorage.setItem('babl_free_roulette_at',String(Date.now()));
+      note.textContent='Выпало: '+prizes[idx].emoji+' '+prizes[idx].name+'. Для сохранения наград подключим выдачу через сервер.';
+      spinning=false; start.disabled=false; modes.forEach(x=>x.disabled=false);
+    },3200);
+  });
+})();
+
 
 loadGame();
 </script>
