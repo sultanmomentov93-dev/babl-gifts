@@ -435,10 +435,10 @@ body {
         <div class="roulette-mascot">🫧</div>
       </div>
     </div>
-<section class="tasks-section" id="tasksScreen">
+<section class="tasks-section" id="homeTasksSection">
     <div class="tasks-heading">
       <h2>Задания</h2>
-      <button class="tasks-show-all" id="tasksToggle" type="button" aria-expanded="false">Все</button>
+      <button class="tasks-show-all" id="tasksToggleHome" type="button" aria-expanded="false">Все</button>
     </div>
     <div class="tasks-list" id="tasksList">
       <div class="task-card" role="button" tabindex="0" data-task="daily">
@@ -485,6 +485,57 @@ body {
   </section>
 
   </section>
+
+
+  <section class="tasks-section" id="tasksScreen">
+      <div class="tasks-heading">
+        <h2>Задания</h2>
+        <button class="tasks-show-all" id="tasksToggle" type="button" aria-expanded="false">Все</button>
+      </div>
+      <div class="tasks-list" id="tasksList">
+        <div class="task-card" role="button" tabindex="0" data-task="daily">
+          <div class="task-icon">🎁</div>
+          <div class="task-info">
+            <div class="task-name">Ежедневный бонус</div>
+            <div class="task-description">Забери бесплатные Пузырьки</div>
+          </div>
+          <span class="task-arrow">›</span>
+        </div>
+        <div class="task-card" role="button" tabindex="0" data-task="box">
+          <div class="task-icon">📦</div>
+          <div class="task-info">
+            <div class="task-name">Открой коробку</div>
+            <div class="task-description">Получи случайный подарок</div>
+          </div>
+          <span class="task-arrow">›</span>
+        </div>
+        <div class="task-card" role="button" tabindex="0" data-task="collection">
+          <div class="task-icon">🧸</div>
+          <div class="task-info">
+            <div class="task-name">Собери коллекцию</div>
+            <div class="task-description">Пополняй коллекцию подарков</div>
+          </div>
+          <span class="task-arrow">›</span>
+        </div>
+        <div class="task-card extra-task" role="button" tabindex="0" hidden>
+          <div class="task-icon">🫧</div>
+          <div class="task-info">
+            <div class="task-name">Собери Пузырьки</div>
+            <div class="task-description">Заглядывай в игру каждый день</div>
+          </div>
+          <span class="task-arrow">›</span>
+        </div>
+        <div class="task-card extra-task" role="button" tabindex="0" hidden>
+          <div class="task-icon">🌟</div>
+          <div class="task-info">
+            <div class="task-name">Загляни завтра</div>
+            <div class="task-description">Возвращайся за новыми наградами</div>
+          </div>
+          <span class="task-arrow">›</span>
+        </div>
+      </div>
+    </section>
+
 
   <section id="profileScreen" hidden>
     <div class="player-panel">
@@ -597,27 +648,20 @@ loadGame();
 
 <script>
 (function () {
-  const toggle = document.getElementById("tasksToggle");
-  const extras = document.querySelectorAll(".extra-task");
+  document.querySelectorAll(".tasks-section .tasks-show-all").forEach(function (toggle) {
+    const section = toggle.closest(".tasks-section");
+    const extras = section.querySelectorAll(".extra-task");
 
-  if (!toggle) return;
+    extras.forEach(function (task) { task.hidden = true; });
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.textContent = "Все";
 
-  extras.forEach(function (task) {
-    task.hidden = true;
-  });
-
-  toggle.setAttribute("aria-expanded", "false");
-  toggle.textContent = "Все";
-
-  toggle.addEventListener("click", function () {
-    const expanded = toggle.getAttribute("aria-expanded") === "true";
-
-    extras.forEach(function (task) {
-      task.hidden = expanded;
+    toggle.addEventListener("click", function () {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      extras.forEach(function (task) { task.hidden = expanded; });
+      toggle.setAttribute("aria-expanded", String(!expanded));
+      toggle.textContent = expanded ? "Все" : "Свернуть";
     });
-
-    toggle.setAttribute("aria-expanded", String(!expanded));
-    toggle.textContent = expanded ? "Все" : "Свернуть";
   });
 })();
 </script>
@@ -630,15 +674,9 @@ loadGame();
     button.addEventListener("click", function () {
       const target = button.dataset.screen;
 
-      if (target === "tasksScreen") {
-        document.getElementById("homeScreen").hidden = false;
-        document.getElementById("profileScreen").hidden = true;
-        document.getElementById("tasksScreen").scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        document.getElementById("homeScreen").hidden = target !== "homeScreen";
-        document.getElementById("profileScreen").hidden = target !== "profileScreen";
-        if (target === "homeScreen") window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      document.getElementById("homeScreen").hidden = target !== "homeScreen";
+      document.getElementById("tasksScreen").hidden = target !== "tasksScreen";
+      document.getElementById("profileScreen").hidden = target !== "profileScreen";
 
       buttons.forEach(function (item) {
         const active = item === button;
