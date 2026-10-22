@@ -24,17 +24,20 @@
     background-repeat: no-repeat;
     }
     .app { max-width: 480px; margin: auto; }
+    /* Панель баланса немного уже и уходит за верхний край экрана */
     .player-panel {
       position: relative;
       overflow: hidden;
+      width: 92%;
+      margin: -64px auto 18px;
       background:
-        linear-gradient(90deg, rgba(7, 18, 58, .92) 0%, rgba(10, 29, 79, .76) 42%, rgba(10, 29, 79, .06) 100%),
+        linear-gradient(90deg, rgba(7, 18, 58, .88) 0%, rgba(10, 29, 79, .62) 48%, rgba(10, 29, 79, .04) 100%),
         url("/static/balance-bg.png") center 48% / cover no-repeat;
       border: 2px solid rgba(125, 219, 255, .95);
-      border-radius: 24px;
-      padding: 18px;
-      min-height: 190px;
-      margin-bottom: 18px;
+      border-top-color: transparent;
+      border-radius: 0 0 24px 24px;
+      padding: 82px 16px 18px;
+      min-height: 300px;
       box-shadow: 0 8px 24px #0005, inset 0 0 18px #7bdfff50;
     }
     .balance-heading {
@@ -45,12 +48,26 @@
       margin-bottom: 5px;
     }
     .player-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 21px;
       font-weight: bold;
-      max-width: 68%;
+      max-width: 78%;
       overflow-wrap: anywhere;
       text-shadow: 0 2px 5px #00123f;
     }
+    .player-avatar {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #8deaff;
+      box-shadow: 0 0 12px #39d8ff80;
+      background: #163e70;
+    }
+    .player-name span { overflow-wrap: anywhere; }
     .player-caption {
       color: #d5efff;
       font-size: 12px;
@@ -65,11 +82,11 @@
       margin-top: 18px;
       width: fit-content;
       max-width: 100%;
-      padding: 9px 10px;
-      border: 1px solid #9cecffb8;
-      border-radius: 18px;
-      background: rgba(7, 20, 67, .78);
-      box-shadow: 0 4px 15px #0004;
+      padding: 9px 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
     }
     .player-balance-label { display: none; }
     .player-balance strong {
@@ -97,8 +114,8 @@
       box-shadow: 0 0 12px #ffcb3d9c;
     }
     @media (max-width: 380px) {
-      .player-panel { padding: 14px; min-height: 175px; }
-      .player-name { font-size: 18px; max-width: 72%; }
+      .player-panel { width: 92%; margin-top: -58px; padding: 76px 12px 16px; min-height: 278px; }
+      .player-name { font-size: 18px; max-width: 88%; }
       .player-balance strong { font-size: 21px; }
       .balance-plus { width: 35px; height: 35px; flex-basis: 35px; }
     }
@@ -458,8 +475,11 @@ body {
   <section id="homeScreen">
     <div class="player-panel">
       <div class="balance-heading">Ваш баланс</div>
-      <div class="player-name" id="playerName">🩵 Игрок</div>
-      <div class="player-caption">Добро пожаловать в Бабл Подарки!</div>
+      <div class="player-name">
+        <img class="player-avatar" id="playerAvatar" src="/static/bubble.png" alt="Фото игрока">
+        <span id="playerName">Игрок</span>
+      </div>
+      <div class="player-caption">Ваш баланс</div>
       <div class="player-balance">
         <strong>
           <img class="bubble-icon" src="/static/bubble.png" alt="Пузырёк">
@@ -621,13 +641,17 @@ tg.expand();
 
 const coinsEl = document.getElementById("coins");
 const playerNameEl = document.getElementById("playerName");
+const playerAvatarEl = document.getElementById("playerAvatar");
 const profileNameEl = document.getElementById("profileName");
 const profileCoinsEl = document.getElementById("profileCoins");
 const telegramUser = tg.initDataUnsafe?.user;
 
 if (telegramUser) {
   playerNameEl.textContent =
-    "🩵 " + (telegramUser.first_name || telegramUser.username || "Игрок");
+    telegramUser.first_name || telegramUser.username || "Игрок";
+  if (telegramUser.photo_url) {
+    playerAvatarEl.src = telegramUser.photo_url;
+  }
 }
 
 async function api(path, method = "GET") {
@@ -690,6 +714,10 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
       document.querySelector('[data-screen="profileScreen"]').click();
     }
   });
+});
+
+document.getElementById("balancePlus").addEventListener("click", function () {
+  alert("🌟 Пополнение Пузырьков через Telegram Stars скоро появится!");
 });
 
 loadGame();
