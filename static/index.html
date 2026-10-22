@@ -24,19 +24,19 @@
     background-repeat: no-repeat;
     }
     .app { max-width: 480px; margin: auto; }
-    /* Новый компактный блок баланса по утверждённому макету */
+    /* Баланс по утверждённому макету: аватар, подпись и одна строка баланса */
     .player-panel {
       position: relative;
       isolation: isolate;
       overflow: hidden;
       width: 100%;
       margin: 0 auto 18px;
-      padding: 14px 14px 16px;
+      padding: 12px 12px 14px;
       min-height: 0;
       border: 2px solid rgba(104, 226, 255, .98);
       border-radius: 24px;
       background:
-        linear-gradient(90deg, rgba(4, 18, 64, .72) 0%, rgba(7, 23, 70, .45) 53%, rgba(7, 23, 70, .10) 100%),
+        linear-gradient(90deg, rgba(4, 18, 64, .58) 0%, rgba(7, 23, 70, .28) 58%, rgba(7, 23, 70, .04) 100%),
         url("/static/balance-bg.png") center / cover no-repeat;
       box-shadow: 0 0 18px #36dfff70, inset 0 0 16px #5be4ff25;
     }
@@ -52,10 +52,10 @@
     .player-panel > .player-name { display: none; }
     .player-avatar {
       display: block;
-      width: 76px;
-      height: 76px;
-      flex: 0 0 76px;
-      margin: 0 0 8px 2px;
+      width: 82px;
+      height: 82px;
+      flex: 0 0 82px;
+      margin: 0 0 7px 2px;
       border-radius: 50%;
       object-fit: cover;
       border: 3px solid #72edff;
@@ -66,8 +66,8 @@
       width: fit-content;
       margin: 0 0 8px 0;
       color: #f4fcff;
-      font-size: 20px;
-      line-height: 1.15;
+      font-size: 21px;
+      line-height: 1.12;
       font-weight: 900;
       letter-spacing: .2px;
       text-shadow: 0 2px 4px #00113e, 0 0 9px #45cfff;
@@ -78,10 +78,10 @@
     .balance-caption::after {
       content: "";
       display: inline-block;
-      width: 24px;
+      width: 23px;
       height: 27px;
       vertical-align: -5px;
-      flex: 0 0 24px;
+      flex: 0 0 23px;
       background:
         linear-gradient(25deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 1px / 19px 7px no-repeat,
         linear-gradient(0deg, transparent 38%, #83eaff 42%, #ffffff 50%, #83eaff 58%, transparent 63%) center 10px / 24px 7px no-repeat,
@@ -94,7 +94,7 @@
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      gap: 10px;
+      gap: 9px;
       margin: 0;
       width: fit-content;
       max-width: 100%;
@@ -109,26 +109,28 @@
       align-items: center;
       gap: 8px;
       min-width: 0;
-      font-size: clamp(24px, 7vw, 34px);
+      font-size: clamp(25px, 7.5vw, 36px);
       line-height: 1.1;
       white-space: nowrap;
       text-shadow: 0 2px 5px #00123f, 0 0 10px #287bff;
     }
-    .bubble-icon { width: 42px; height: 42px; object-fit: contain; flex: 0 0 42px; }
+    .player-balance .bubble-icon { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
     .balance-plus {
+      position: relative;
+      isolation: isolate;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 52px;
-      height: 52px;
-      flex: 0 0 52px;
-      margin: 0 0 0 2px;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 44px;
+      margin: 0 0 0 8px;
       padding: 0 0 4px;
       border-radius: 50%;
       border: 3px solid #fff5ad;
       color: #fff;
       background: radial-gradient(circle at 30% 25%, #fffcaa 0%, #ffcf36 26%, #ff8d18 58%, #ff4ec8 100%);
-      font-size: 42px;
+      font-size: 36px;
       font-weight: 900;
       line-height: 1;
       text-shadow: 0 2px 2px #8c2e8c;
@@ -136,15 +138,36 @@
       cursor: pointer;
       transition: transform .15s ease, filter .15s ease;
     }
+    /* Светящиеся декоративные лучики вокруг кнопки «+», как на макете */
+    .balance-plus::before,
+    .balance-plus::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 19px;
+      height: 38px;
+      pointer-events: none;
+      background:
+        linear-gradient(25deg, transparent 38%, #fff9a8 44%, #ffffff 50%, #ffcf36 58%, transparent 64%) center 2px / 17px 7px no-repeat,
+        linear-gradient(0deg, transparent 38%, #fff9a8 44%, #ffffff 50%, #ffcf36 58%, transparent 64%) center 15px / 19px 7px no-repeat,
+        linear-gradient(-25deg, transparent 38%, #fff9a8 44%, #ffffff 50%, #ffcf36 58%, transparent 64%) center 28px / 17px 7px no-repeat;
+      filter: drop-shadow(0 0 3px #ffdb45) drop-shadow(0 0 7px #ff8b20);
+      transform: translateY(-50%);
+      z-index: -1;
+    }
+    .balance-plus::before { right: calc(100% + 1px); }
+    .balance-plus::after { left: calc(100% + 1px); transform: translateY(-50%) scaleX(-1); }
     .balance-plus:active { transform: scale(.92); filter: brightness(1.12); }
     @media (max-width: 380px) {
-      .player-panel { padding: 12px 10px 14px; border-radius: 20px; }
-      .player-avatar { width: 68px; height: 68px; }
+      .player-panel { padding: 10px 9px 12px; border-radius: 20px; }
+      .player-avatar { width: 68px; height: 68px; flex-basis: 68px; }
       .player-caption { font-size: 18px; }
-      .player-balance { gap: 7px; }
-      .player-balance strong { font-size: 23px; gap: 6px; }
-      .bubble-icon { width: 36px; height: 36px; flex-basis: 36px; }
-      .balance-plus { width: 44px; height: 44px; flex-basis: 44px; font-size: 36px; }
+      .player-balance { gap: 6px; }
+      .player-balance strong { font-size: 22px; gap: 5px; }
+      .player-balance .bubble-icon { width: 36px; height: 36px; flex-basis: 36px; }
+      .balance-plus { width: 36px; height: 36px; flex-basis: 36px; font-size: 30px; border-width: 2px; margin-left: 7px; }
+      .balance-plus::before, .balance-plus::after { transform: translateY(-50%) scale(.88); }
+      .balance-plus::after { transform: translateY(-50%) scaleX(-1) scale(.88); }
     }
     header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     h1 { font-size: 24px; margin: 8px 0; }
@@ -536,7 +559,7 @@ body {
       <h2>Задания</h2>
       <button class="tasks-show-all" id="tasksToggleHome" type="button" aria-expanded="false">Все</button>
     </div>
-    <div class="tasks-list" id="tasksList">
+    <div class="tasks-list" id="homeTasksList">
       <div class="task-card" role="button" tabindex="0" data-task="daily">
         <div class="task-icon">🎁</div>
         <div class="task-info">
