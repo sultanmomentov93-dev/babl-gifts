@@ -1052,12 +1052,15 @@ document.getElementById("balancePlus").addEventListener("click", function () {
   }
 
   open.addEventListener("click", function (e) {
-    e.stopPropagation();
-    show();
-  });
+  e.preventDefault();
+  e.stopPropagation();
+  show();
+});
 
-  card.addEventListener("click", show);
-
+card.addEventListener("click", function (e) {
+  if (e.target.closest("#openRoulette")) return;
+  show();
+});
   card.addEventListener("keydown", function (e) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
