@@ -435,9 +435,7 @@ body {
         <div class="roulette-mascot">🫧</div>
       </div>
     </div>
-  </section>
-
-  <section class="tasks-section" id="tasksScreen" hidden>
+<section class="tasks-section" id="tasksScreen">
     <div class="tasks-heading">
       <h2>Задания</h2>
       <button class="tasks-show-all" id="tasksToggle" type="button" aria-expanded="false">Все</button>
@@ -484,6 +482,8 @@ body {
         <span class="task-arrow">›</span>
       </div>
     </div>
+  </section>
+
   </section>
 
   <section id="profileScreen" hidden>
@@ -624,24 +624,21 @@ loadGame();
   
 <script>
 (function () {
-  const screens = [
-    "homeScreen",
-    "tasksScreen",
-    "profileScreen"
-  ];
-
   const buttons = document.querySelectorAll(".nav-item");
 
   buttons.forEach(function (button) {
     button.addEventListener("click", function () {
       const target = button.dataset.screen;
 
-      screens.forEach(function (id) {
-        const screen = document.getElementById(id);
-        if (screen) {
-          screen.hidden = id !== target;
-        }
-      });
+      if (target === "tasksScreen") {
+        document.getElementById("homeScreen").hidden = false;
+        document.getElementById("profileScreen").hidden = true;
+        document.getElementById("tasksScreen").scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        document.getElementById("homeScreen").hidden = target !== "homeScreen";
+        document.getElementById("profileScreen").hidden = target !== "profileScreen";
+        if (target === "homeScreen") window.scrollTo({ top: 0, behavior: "smooth" });
+      }
 
       buttons.forEach(function (item) {
         const active = item === button;
