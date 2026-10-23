@@ -1646,7 +1646,27 @@ document.getElementById("balancePlus").addEventListener("click", async function 
       display:flex;justify-content:space-between;align-items:center;
     `;
 
-    packButton.innerHTML =
+    
+    const tags = {
+      "100": "Для знакомства",
+      "500": "Популярный пакет",
+      "1000": "Больше возможностей",
+      "2500": "Большой запас",
+      "5000": "Для коллекционеров",
+      "10000": "Максимальный пакет"
+    };
+
+    packButton.innerHTML = `
+      <span class="bubbles-pack-tag">${tags[pack.id] || "Пакет Пузырьков"}</span>
+      <span class="bubbles-pack-amount">
+        <span class="bubbles-pack-icon">🫧</span>
+        <span>${pack.coins}</span>
+      </span>
+      <span class="bubbles-pack-price">
+        <span class="star">★</span>
+        <span>${pack.stars} Stars</span>
+      </span>
+    `;
       `<span>🫧 ${pack.coins}</span><span>⭐ ${pack.stars}</span>`;
 
     packButton.addEventListener("click", async function () {
