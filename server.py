@@ -214,6 +214,46 @@ def withdrawals(authorization: Optional[str] = Header(default=None)):
                             FROM pending_gifts WHERE user_id=? ORDER BY id DESC""", (p["user_id"],)).fetchall()
     return {"ok": True, "gifts": [dict(r) for r in rows]}
 
+@app.get("/api/admin/stars-balance")
+async def admin_stars_balance(
+    authorization: Optional[str] = Header(default=None)
+):
+    admin_id = os.getenv("ADMIN_ID", "").strip()
+
+    if not admin_id:
+        raise HTTPException(503, "ADMIN_ID не настроен")
+
+    if not authorization or not authorization.startswith("tma "):
+        raise HTTPException(401, "Открой игру через Telegram")
+
+    uid, _ = validate_init_data(authorization[4:])
+
+    if uid != admin_id:
+        raise HTTPException(403, "Доступ только для администратора")
+
+    if not BOT_TOKEN:
+        raise HTTPException(503, "BOT_TOKEN не настроен")
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/getMyStarBalance"
+            )
+            data = response.json()
+
+        if not response.is_success or not data.get("ok"):
+            raise HTTPException(
+                502,
+                data.get("description", "Не удалось проверить баланс Stars")
+            )
+
+        return {
+            "ok": True,
+            "balance": data["result"]
+        }
+
+    except httpx.HTTPError:
+        raise HTTPException(502, "Ошибка связи с Telegram")
 @app.get("/api/health")
 def health():
     return {"ok": True, "app": "Babl Gifts"}
