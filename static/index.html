@@ -1379,6 +1379,7 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
 });
 
 
+
 document.getElementById("balancePlus").addEventListener("click", async function () {
   const button = document.getElementById("balancePlus");
 
@@ -1388,38 +1389,131 @@ document.getElementById("balancePlus").addEventListener("click", async function 
   }
 
   if (typeof tg.openInvoice !== "function") {
-    alert("Оплата недоступна в этой версии Telegram. Обнови Telegram и попробуй снова.");
+    alert("Обнови Telegram, чтобы использовать оплату Stars.");
     return;
   }
 
-  button.disabled = true;
+  const packs = [
+    { id: "100", coins: "100", stars: "10" },
+    { id: "500", coins: "500", stars: "50" },
+    { id: "1000", coins: "1 000", stars: "100" },
+    { id: "2500", coins: "2 500", stars: "250" },
+    { id: "5000", coins: "5 000", stars: "500" },
+    { id: "10000", coins: "10 000", stars: "1 000" }
+  ];
 
-  try {
-    const result = await api("/api/buy-bubbles", "POST");
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(4,15,30,.82);
+    display:flex; align-items:center; justify-content:center;
+    padding:18px; box-sizing:border-box;
+  `;
 
-    if (!result.invoice_link) {
-      throw new Error("Сервер не вернул ссылку на оплату.");
-    }
+  const modal = document.createElement("div");
+  modal.style.cssText = `
+    width:100%; max-width:360px; padding:22px;
+    box-sizing:border-box; border-radius:24px;
+    background:linear-gradient(160deg,#173c53,#102638);
+    border:1px solid #4386a3; color:white;
+    font-family:Arial,sans-serif;
+  `;
 
-    tg.openInvoice(result.invoice_link, async function (status) {
-      if (status === "paid") {
-        await loadGame();
-        alert("🎉 Оплата подтверждена! Проверяем твой баланс.");
-      } else if (status === "cancelled") {
-        console.log("Пользователь отменил оплату.");
-      } else if (status === "failed") {
-        alert("Не удалось выполнить оплату. Попробуй ещё раз.");
+  modal.innerHTML = `
+    <div style="font-size:23px;font-weight:bold;text-align:center">
+      🫧 Купить Пузырьки
+    </div>
+    <div style="text-align:center;color:#b8d8e8;margin:8px 0 18px">
+      Выбери подходящий пакет
+    </div>
+    <div id="bubblePacks" style="display:grid;gap:9px"></div>
+    <button id="closeBubblePacks" style="
+      width:100%;margin-top:14px;padding:12px;border-radius:13px;
+      border:1px solid #51768a;background:transparent;color:white;
+      font-size:15px
+    ">Закрыть</button>
+    <div style="font-size:11px;text-align:center;color:#a9c4d3;margin-top:12px">
+      Оплата игровыми пакетами через Telegram Stars
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const packList = modal.querySelector("#bubblePacks");
+
+  packs.forEach(function (pack) {
+    const packButton = document.createElement("button");
+
+    packButton.style.cssText = `
+      width:100%;padding:14px;border-radius:14px;
+      border:1px solid #4c91ad;
+      background:linear-gradient(90deg,#225675,#287a91);
+      color:white;font-size:16px;font-weight:bold;
+      display:flex;justify-content:space-between;align-items:center;
+    `;
+
+    packButton.innerHTML =
+      `<span>🫧 ${pack.coins}</span><span>⭐ ${pack.stars}</span>`;
+
+    packButton.addEventListener("click", async function () {
+      if (button.disabled) return;
+
+      button.disabled = true;
+      packButton.disabled = true;
+      packButton.textContent = "Подготовка оплаты…";
+
+      try {
+        const result = await api(
+          "/api/buy-bubbles",
+          "POST",
+          { pack_id: pack.id }
+        );
+
+        if (!result.invoice_link) {
+          throw new Error("Сервер не вернул ссылку на оплату.");
+        }
+
+        overlay.remove();
+
+        tg.openInvoice(result.invoice_link, async function (status) {
+          try {
+            if (status === "paid") {
+              await loadGame();
+              alert(
+                "🎉 Оплата подтверждена! " +
+                pack.coins + " Пузырьков скоро появятся на балансе."
+              );
+            } else if (status === "failed") {
+              alert("Не удалось выполнить оплату. Попробуй ещё раз.");
+            }
+          } catch (error) {
+            alert("Оплата обработана, но баланс не обновился. " +
+              "Перезапусти игру и проверь баланс.");
+          } finally {
+            button.disabled = false;
+          }
+        });
+      } catch (error) {
+        alert("Не удалось открыть оплату:\n" + error.message);
+        packButton.disabled = false;
+        packButton.innerHTML =
+          `<span>🫧 ${pack.coins}</span><span>⭐ ${pack.stars}</span>`;
+        button.disabled = false;
       }
-
-      button.disabled = false;
     });
-  } catch (error) {
-    alert("Не удалось открыть оплату:\n" + error.message);
-    button.disabled = false;
-  }
+
+    packList.appendChild(packButton);
+  });
+
+  modal.querySelector("#closeBubblePacks").addEventListener("click", function () {
+    overlay.remove();
+  });
+
+  overlay.addEventListener("click", function (event) {
+    if (event.target === overlay) overlay.remove();
+  });
 });
-
-
 
 (function setupRoulette() {
   const overlay = document.getElementById("rouletteOverlay");
