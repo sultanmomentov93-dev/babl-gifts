@@ -1043,6 +1043,101 @@ async function loadGame() {
   }
 }
 
+async function loadAdminGifts() {
+  const message = document.getElementById("adminMessage");
+  const container = document.getElementById("adminGifts");
+
+  message.textContent = "Загружаем заявки...";
+  container.replaceChildren();
+
+  try {
+    const data = await api("/api/admin/gifts");
+
+    message.textContent = "Всего заявок: " + data.gifts.length;
+
+    if (!data.gifts.length) {
+      message.textContent = "Пока нет выигранных подарков.";
+      return;
+    }
+
+    data.gifts.forEach(function (gift) {
+      const card = document.createElement("div");
+      card.className = "collection-gift";
+
+      const emoji = document.createElement("div");
+      emoji.className = "collection-gift-emoji";
+      emoji.textContent = gift.emoji || "🎁";
+
+      const name = document.createElement("div");
+      name.className = "collection-gift-name";
+      name.textContent = gift.name + " · Игрок " + gift.user_id;
+
+      const status = document.createElement("div");
+      status.className = "collection-gift-status";
+
+      const labels = {
+        pending: "⏳ Ожидает обработки",
+        approved: "✅ Одобрен",
+        withdrawn: "📨 Выведен"
+      };
+
+      status.textContent = labels[gift.status] || gift.status;
+
+      card.append(emoji, name, status);
+
+      async function changeStatus(nextStatus) {
+        const button = card.querySelector("button");
+        if (button) button.disabled = true;
+
+        try {
+          await api("/api/admin/gifts/status", "POST", {
+            gift_id: gift.id,
+            status: nextStatus
+          });
+
+          await loadAdminGifts();
+        } catch (error) {
+          message.textContent = error.message;
+          if (button) button.disabled = false;
+        }
+      }
+
+      if (gift.status === "pending") {
+        const approve = document.createElement("button");
+        approve.type = "button";
+        approve.textContent = "✅ Одобрить";
+        approve.addEventListener("click", function () {
+          changeStatus("approved");
+        });
+        card.appendChild(approve);
+      }
+
+      if (gift.status === "approved") {
+        const withdraw = document.createElement("button");
+        withdraw.type = "button";
+        withdraw.textContent = "📨 Отметить как выведенный";
+        withdraw.addEventListener("click", function () {
+          if (confirm("Подарок действительно выведен?")) {
+            changeStatus("withdrawn");
+          }
+        });
+        card.appendChild(withdraw);
+      }
+
+      container.appendChild(card);
+    });
+  } catch (error) {
+    message.textContent =
+      error.message === "Доступ только для администратора"
+        ? "⛔ Доступ запрещён."
+        : "Не удалось загрузить заявки: " + error.message;
+  }
+}
+
+document.getElementById("adminRefresh").addEventListener(
+  "click",
+  loadAdminGifts
+);
 let busy = false;
 
 async function performTask(path, successText) {
