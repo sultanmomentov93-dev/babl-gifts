@@ -213,6 +213,9 @@ def open_box(authorization: Optional[str] = Header(default=None)):
 
 class RouletteSpin(BaseModel):
     mode: str = "free"
+    
+class BubblePurchase(BaseModel):
+    pack_id: str
 
 @app.post("/api/roulette/spin")
 def roulette_spin(body: RouletteSpin, authorization: Optional[str] = Header(default=None)):
