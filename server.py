@@ -869,73 +869,7 @@ async def telegram_webhook(request: Request):
                 )
 
             return {"ok": True}
-            # Начисляем ровно один раз.
-            with connect() as c:
-                c.execute("BEGIN IMMEDIATE")
-
-                existing = c.execute(
-                    """
-                    SELECT 1 FROM star_payments
-                    WHERE telegram_payment_charge_id = ?
-                    """,
-                    (charge_id,)
-                ).fetchone()
-
-                if not existing:
-                    player = c.execute(
-                        "SELECT user_id FROM players WHERE user_id = ?",
-                        (user_id,)
-                    ).fetchone()
-
-                    if not player:
-                        c.execute(
-                            """
-                            INSERT INTO players
-                                (user_id, username, coins, last_daily, created_at)
-                            VALUES (?, ?, 100, 0, ?)
-                            """,
-                            (user_id, username, now)
-                        )
-
-                    c.execute(
-                        """
-                        INSERT INTO star_payments
-                            (telegram_payment_charge_id, user_id,
-                             amount, coins, created_at)
-                        VALUES (?, ?, ?, ?, ?)
-                        """,
-                        (charge_id, user_id, 1, 10, now)
-                    )
-
-                    c.execute(
-                        "UPDATE players SET coins = coins + 10 WHERE user_id = ?",
-                        (user_id,)
-                    )
-
-                    c.execute(
-                        """
-                        INSERT INTO transactions
-                            (user_id, kind, amount, created_at)
-                        VALUES (?, ?, ?, ?)
-                        """,
-                        (user_id, "stars_purchase", 10, now)
-                    )
-
-            # Уведомляем игрока. Начисление уже сохранено в базе.
-            chat_id = message.get("chat", {}).get("id")
-            if chat_id:
-                await client.post(
-                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                    json={
-                        "chat_id": chat_id,
-                        "text":
-                            "🎉 Оплата получена! Тебе начислено 10 Пузырьков. "
-                            "Возвращайся в «Бабл Подарки»!"
-                    }
-                )
-
-            return {"ok": True}
-
+            
         # 3. Обычная команда /start — оставляем как раньше.
         text = message.get("text", "")
         chat = message.get("chat", {})
