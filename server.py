@@ -218,20 +218,24 @@ def withdrawals(authorization: Optional[str] = Header(default=None)):
 def health():
     return {"ok": True, "app": "Babl Gifts"}
     
+
 @app.get("/api/telegram/gifts")
 async def telegram_available_gifts(
     authorization: Optional[str] = Header(default=None)
 ):
-    # Не разрешаем демонстрационному пользователю обращаться к каталогу.
-    p = get_player(authorization)
+    admin_id = os.getenv("ADMIN_ID", "").strip()
 
-    # Проверяем, что запрос действительно пришёл от администратора.
-    admin_id = os.getenv("ADMIN_ID", "")
-    if not admin_id or p["user_id"] != admin_id:
+    if not admin_id:
+        raise HTTPException(503, "ADMIN_ID не настроен")
+
+    if not authorization or not authorization.startswith("tma "):
+        raise HTTPException(401, "Открой игру через Telegram")
+
+    # Проверяем подлинность данных Telegram.
+    uid, _ = validate_init_data(authorization[4:])
+
+    if uid != admin_id:
         raise HTTPException(403, "Доступ только для администратора")
-
-    if not BOT_TOKEN:
-        raise HTTPException(503, "BOT_TOKEN не настроен")
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getAvailableGifts"
 
@@ -241,10 +245,10 @@ async def telegram_available_gifts(
             response.raise_for_status()
             result = response.json()
     except httpx.HTTPError:
-        raise HTTPException(502, "Не удалось связаться с Telegram")
+        raise HTTPException(502, "Ошибка связи с Telegram")
 
     if not result.get("ok"):
-        raise HTTPException(502, "Telegram не вернул список подарков")
+        raise HTTPException(502, "Telegram не смог вернуть каталог подарков")
 
     gifts = result.get("result", {}).get("gifts", [])
 
