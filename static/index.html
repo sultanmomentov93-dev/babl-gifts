@@ -995,8 +995,8 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
       performTask("/api/daily", "🎉 Ежедневный бонус получен!");
     } else if (type === "box") {
       performTask("/api/open-box", "🎁 Коробка открыта!");
-    } else if (type === "collection") {
-      document.querySelector('[data-screen="profileScreen"]').click();
+        } else if (type === "collection") {
+      document.querySelector('[data-screen="collectionScreen"]').click();
     }
   });
 });
