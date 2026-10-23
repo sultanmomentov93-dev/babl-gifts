@@ -718,17 +718,27 @@ async def telegram_webhook(request: Request):
 
     async with httpx.AsyncClient(timeout=15) as client:
 
-        # 1. Telegram спрашивает, можно ли провести оплату.
+        
+        # 1. Проверяем платёж перед подтверждением.
         query = update.get("pre_checkout_query")
 
         if query:
             payload = query.get("invoice_payload", "")
             user_id = str(query.get("from", {}).get("id", ""))
 
+            try:
+                pack_part, payload_user_id = payload.split(":", 1)
+                pack_id = pack_part.removeprefix("bubbles_")
+                pack = BUBBLE_PACKS.get(pack_id)
+            except ValueError:
+                pack = None
+                payload_user_id = ""
+
             valid = (
-                payload == "bubbles_10:" + user_id
+                pack is not None
+                and payload_user_id == user_id
                 and query.get("currency") == "XTR"
-                and query.get("total_amount") == 1
+                and query.get("total_amount") == pack["stars"]
             )
 
             response = await client.post(
