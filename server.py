@@ -505,11 +505,12 @@ def admin_update_gift_status(
     if uid != admin_id:
         raise HTTPException(403, "Доступ только для администратора")
 
-    if body.status not in ("approved", "withdrawn"):
-        raise HTTPException(
-            400,
-            "Допустимые статусы: approved, withdrawn"
-        )
+    if body.status != "approved":
+    raise HTTPException(
+        400,
+        "Изменять статус можно только на «Одобрен». "
+        "Для отправки подарка используй отдельную функцию отправки."
+    )
 
     # Проверяем заявку и сохраняем новый статус.
     with connect() as c:
