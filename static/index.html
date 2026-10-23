@@ -1146,55 +1146,148 @@ async function loadAdminGifts() {
         });
         card.appendChild(approve);
       }
+
 if (gift.status === "approved") {
   const sendButton = document.createElement("button");
   sendButton.type = "button";
-  sendButton.textContent = "🎁 Отправить подарок";
+  sendButton.textContent = "🎁 Выбрать подарок";
   sendButton.className = "primary-button";
 
   sendButton.addEventListener("click", async function () {
-    const telegramGiftId = prompt(
-      "Введи ID подарка Telegram из доступного каталога:"
-    );
-
-    if (!telegramGiftId || !telegramGiftId.trim()) {
-      return;
-    }
-
-    const confirmed = confirm(
-      "Отправить настоящий подарок Telegram пользователю " +
-      gift.user_id + "?\n\n" +
-      "После успешной отправки статус изменится автоматически."
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     sendButton.disabled = true;
-    sendButton.textContent = "⏳ Отправка...";
+    sendButton.textContent = "⏳ Загружаем подарки...";
 
     try {
-      const result = await api("/api/admin/gifts/send", {
-        method: "POST",
-        body: JSON.stringify({
-          gift_id: gift.id,
-          telegram_gift_id: telegramGiftId.trim()
-        })
+      const catalog = await api("/api/admin/telegram-gifts");
+
+      if (!catalog.gifts || catalog.gifts.length === 0) {
+        throw new Error("В каталоге Telegram пока нет доступных подарков");
+      }
+
+      const overlay = document.createElement("div");
+      overlay.style.cssText =
+        "position:fixed;inset:0;z-index:9999;background:#07130fee;" +
+        "display:flex;align-items:center;justify-content:center;padding:18px;";
+
+      const modal = document.createElement("div");
+      modal.style.cssText =
+        "width:100%;max-width:420px;max-height:85vh;overflow:auto;" +
+        "background:#13251f;color:white;border:1px solid #78d8a0;" +
+        "border-radius:18px;padding:18px;";
+
+      const title = document.createElement("h3");
+      title.textContent = "🎁 Выбери подарок Telegram";
+      modal.appendChild(title);
+
+      const description = document.createElement("p");
+      description.textContent =
+        "Получатель: " + gift.user_id +
+        ". Выбери подарок из доступного каталога.";
+      modal.appendChild(description);
+
+      const select = document.createElement("select");
+      select.style.cssText =
+        "width:100%;padding:12px;border-radius:10px;" +
+        "background:#20382f;color:white;font-size:16px;";
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "— Выбери подарок —";
+      select.appendChild(placeholder);
+
+      for (const item of catalog.gifts) {
+        const option = document.createElement("option");
+        option.value = item.id;
+
+        let label = (item.emoji || "🎁") +
+          " Подарок · " + item.star_count + " ⭐";
+
+        if (item.remaining_count !== null &&
+            item.remaining_count !== undefined) {
+          label += " · осталось " + item.remaining_count;
+        }
+
+        option.textContent = label;
+        select.appendChild(option);
+      }
+
+      modal.appendChild(select);
+
+      const send = document.createElement("button");
+      send.type = "button";
+      send.textContent = "Отправить подарок";
+      send.className = "primary-button";
+      send.style.cssText = "width:100%;margin-top:14px;";
+
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.textContent = "Отмена";
+      cancel.style.cssText =
+        "width:100%;margin-top:8px;padding:12px;" +
+        "border-radius:10px;background:#30443b;color:white;";
+
+      cancel.addEventListener("click", function () {
+        overlay.remove();
       });
 
-      alert(
-        "✅ " + (result.message || "Подарок отправлен!") +
-        (result.notification_sent
-          ? "\nИгрок также получил сообщение."
-          : "\nПодарок отправлен, но уведомление игроку не доставлено.")
-      );
+      send.addEventListener("click", async function () {
+        const telegramGiftId = select.value;
 
-      await loadAdminGifts();
+        if (!telegramGiftId) {
+          alert("Сначала выбери подарок из списка.");
+          return;
+        }
+
+        const selected = catalog.gifts.find(
+          item => item.id === telegramGiftId
+        );
+
+        if (!confirm(
+          "Отправить подарок пользователю " + gift.user_id +
+          " за " + selected.star_count + " ⭐?\n\n" +
+          "Если у бота недостаточно Stars, Telegram может отклонить отправку."
+        )) {
+          return;
+        }
+
+        send.disabled = true;
+        send.textContent = "⏳ Отправка...";
+
+        try {
+          const result = await api("/api/admin/gifts/send", {
+            method: "POST",
+            body: JSON.stringify({
+              gift_id: gift.id,
+              telegram_gift_id: telegramGiftId
+            })
+          });
+
+          overlay.remove();
+
+          alert(
+            "✅ " + (result.message || "Подарок отправлен!") +
+            (result.notification_sent
+              ? "\nИгрок также получил сообщение."
+              : "\nУведомление игроку не доставлено.")
+          );
+
+          await loadAdminGifts();
+        } catch (error) {
+          alert("❌ Ошибка отправки:\n" + error.message);
+          send.disabled = false;
+          send.textContent = "Повторить отправку";
+        }
+      });
+
+      modal.appendChild(send);
+      modal.appendChild(cancel);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
     } catch (error) {
-      alert("❌ Не удалось отправить подарок:\n" + error.message);
+      alert("Не удалось загрузить подарки:\n" + error.message);
+    } finally {
       sendButton.disabled = false;
-      sendButton.textContent = "🎁 Отправить подарок";
+      sendButton.textContent = "🎁 Выбрать подарок";
     }
   });
 
