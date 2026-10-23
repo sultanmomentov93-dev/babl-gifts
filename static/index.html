@@ -1115,6 +1115,7 @@ async function loadAdminGifts() {
   container.replaceChildren();
 
   try {
+    await loadAdminStarsBalance();
     const data = await api("/api/admin/gifts");
 
     message.textContent = "Всего заявок: " + data.gifts.length;
