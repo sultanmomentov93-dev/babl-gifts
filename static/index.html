@@ -1254,13 +1254,10 @@ if (gift.status === "approved") {
         send.textContent = "⏳ Отправка...";
 
         try {
-          const result = await api("/api/admin/gifts/send", {
-            method: "POST",
-            body: JSON.stringify({
-              gift_id: gift.id,
-              telegram_gift_id: telegramGiftId
-            })
-          });
+         const result = await api("/api/admin/gifts/send", "POST", {
+           gift_id: gift.id,
+           telegram_gift_id: telegramGiftId
+         });
 
           overlay.remove();
 
