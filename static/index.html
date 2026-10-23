@@ -1091,10 +1091,11 @@ async function loadAdminStarsBalance() {
     }
 
     const balance = data.balance;
-    balanceElement.textContent =
-      typeof balance === "object"
-        ? JSON.stringify(balance)
-        : `${balance} ⭐`;
+
+element.textContent =
+  typeof balance === "object" && balance !== null
+    ? `${balance.amount ?? 0} ⭐`
+    : `${balance ?? 0} ⭐`;
   } catch (error) {
     console.error("Ошибка баланса Stars:", error);
     balanceElement.textContent = "Не удалось загрузить";
