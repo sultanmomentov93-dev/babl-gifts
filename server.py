@@ -310,6 +310,158 @@ class GiftStatusUpdate(BaseModel):
     status: str
 
 
+class SendTelegramGift(BaseModel):
+    gift_id: int
+    telegram_gift_id: str
+
+
+@app.post("/api/admin/gifts/send")
+async def send_telegram_gift(
+    body: SendTelegramGift,
+    authorization: Optional[str] = Header(default=None)
+):
+    admin_id = os.getenv("ADMIN_ID", "").strip()
+
+    if not admin_id:
+        raise HTTPException(503, "ADMIN_ID не настроен")
+
+    if not authorization or not authorization.startswith("tma "):
+        raise HTTPException(401, "Открой игру через Telegram")
+
+    uid, _ = validate_init_data(authorization[4:])
+
+    if str(uid) != admin_id:
+        raise HTTPException(403, "Доступ только для администратора")
+
+    if not BOT_TOKEN:
+        raise HTTPException(503, "BOT_TOKEN не настроен")
+
+    telegram_gift_id = body.telegram_gift_id.strip()
+    if not telegram_gift_id:
+        raise HTTPException(400, "Не выбран подарок Telegram")
+
+    # Проверяем заявку и получателя.
+    with connect() as c:
+        gift = c.execute("""
+            SELECT id, user_id, name, status
+            FROM pending_gifts
+            WHERE id=?
+        """, (body.gift_id,)).fetchone()
+
+        if not gift:
+            raise HTTPException(404, "Заявка не найдена")
+
+        if gift["status"] != "approved":
+            raise HTTPException(
+                400,
+                "Сначала одобри заявку. Отправлять можно только одобренные подарки."
+            )
+
+        player_id = gift["user_id"]
+        gift_name = gift["name"]
+
+    # Telegram user_id должен быть числовым.
+    try:
+        telegram_user_id = int(player_id)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            400,
+            "У этой заявки нет настоящего Telegram ID. "
+            "Демо-аккаунту отправить подарок нельзя."
+        )
+
+    # Проверяем, что выбранный ID действительно есть в каталоге Telegram.
+    async with httpx.AsyncClient(timeout=20) as client:
+        catalog_response = await client.get(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/getAvailableGifts"
+        )
+
+        if not catalog_response.is_success:
+            raise HTTPException(502, "Не удалось проверить каталог Telegram")
+
+        catalog = catalog_response.json()
+        if not catalog.get("ok"):
+            raise HTTPException(502, "Telegram не вернул каталог подарков")
+
+        available_ids = {
+            str(item.get("id"))
+            for item in catalog.get("result", {}).get("gifts", [])
+        }
+
+        if telegram_gift_id not in available_ids:
+            raise HTTPException(
+                400,
+                "Такого подарка сейчас нет в доступном каталоге Telegram"
+            )
+
+        # Отправляем настоящий подарок.
+        response = await client.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendGift",
+            json={
+                "user_id": telegram_user_id,
+                "gift_id": telegram_gift_id
+            }
+        )
+
+        result = response.json()
+
+    if not response.is_success or result.get("ok") is not True:
+        # Заявка остаётся одобренной, чтобы можно было разобраться с ошибкой.
+        raise HTTPException(
+            502,
+            "Telegram не подтвердил отправку: "
+            + str(result.get("description", "неизвестная ошибка"))
+        )
+
+    # Меняем статус только после подтверждения Telegram.
+    with connect() as c:
+        current = c.execute(
+            "SELECT status FROM pending_gifts WHERE id=?",
+            (body.gift_id,)
+        ).fetchone()
+
+        if not current or current["status"] != "approved":
+            raise HTTPException(
+                409,
+                "Подарок отправлен Telegram, но статус заявки изменился. "
+                "Проверь заявку вручную."
+            )
+
+        c.execute(
+            "UPDATE pending_gifts SET status='withdrawn' "
+            "WHERE id=? AND status='approved'",
+            (body.gift_id,)
+        )
+
+    # Уведомляем игрока после подтверждённой отправки.
+    notification_sent = False
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            notice = await client.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": telegram_user_id,
+                    "text": (
+                        f"🎁 Подарок «{gift_name}» отправлен на твой аккаунт Telegram!\n\n"
+                        "Проверь свои подарки в Telegram."
+                    )
+                }
+            )
+            notice_data = notice.json()
+            notification_sent = (
+                notice.is_success and notice_data.get("ok") is True
+            )
+    except Exception as exc:
+        print("Ошибка уведомления игрока:", exc)
+
+    return {
+        "ok": True,
+        "gift_id": body.gift_id,
+        "status": "withdrawn",
+        "telegram_gift_id": telegram_gift_id,
+        "notification_sent": notification_sent,
+        "message": "Telegram подтвердил отправку подарка"
+    }
 @app.get("/api/admin/gifts")
 def admin_list_gifts(
     authorization: Optional[str] = Header(default=None)
