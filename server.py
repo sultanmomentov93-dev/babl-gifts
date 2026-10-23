@@ -227,7 +227,7 @@ def open_box(authorization: Optional[str] = Header(default=None)):
     return {"ok": True, "item": {"id": item_id, **ITEMS[item_id]}}
 
 class RouletteSpin(BaseModel):
-    mode: str = "free
+    mode: str = "free"
 
 @app.post("/api/roulette/spin")
 def roulette_spin(body: RouletteSpin, authorization: Optional[str] = Header(default=None)):
