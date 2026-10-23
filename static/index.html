@@ -1560,8 +1560,13 @@ loadGame();
         profileCoins.textContent = coins.textContent;
       }
       
+      
       if (target === "collectionScreen") {
-      loadGame();
+        loadGame();
+      }
+
+      if (target === "adminScreen") {
+        loadAdminGifts();
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
