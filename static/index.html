@@ -968,6 +968,7 @@ function render(data) {
   renderPendingGifts(data.pending_gifts || []);
 }
 
+
 function renderPendingGifts(gifts) {
   const container = document.getElementById("pendingGifts");
   const message = document.getElementById("collectionMessage");
@@ -987,6 +988,12 @@ function renderPendingGifts(gifts) {
     return;
   }
 
+  const statusLabels = {
+    pending: "⏳ Ожидает обработки",
+    completed: "✅ Обработан",
+    withdrawn: "📨 Выведен"
+  };
+
   gifts.forEach(function (gift) {
     const card = document.createElement("div");
     card.className = "collection-gift";
@@ -1001,12 +1008,8 @@ function renderPendingGifts(gifts) {
 
     const status = document.createElement("div");
     status.className = "collection-gift-status";
-
-    if (gift.status === "pending") {
-      status.textContent = "⏳ Ожидает вывода";
-    } else {
-      status.textContent = gift.status || "Получен";
-    }
+    status.textContent =
+      statusLabels[gift.status] || "🎁 В коллекции";
 
     card.append(emoji, name, status);
     container.appendChild(card);
