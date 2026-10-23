@@ -759,6 +759,7 @@ async def telegram_webhook(request: Request):
             response.raise_for_status()
             return {"ok": True}
 
+        
         # 2. Telegram подтвердил успешную оплату.
         message = update.get("message", {})
         payment = message.get("successful_payment")
@@ -775,15 +776,99 @@ async def telegram_webhook(request: Request):
             )
             now = int(time.time())
 
-            # Проверяем, что оплачен именно наш пакет.
+            try:
+                pack_part, payload_user_id = payload.split(":", 1)
+                pack_id = pack_part.removeprefix("bubbles_")
+                pack = BUBBLE_PACKS.get(pack_id)
+            except ValueError:
+                pack = None
+                payload_user_id = ""
+
+            # Проверяем пакет, пользователя, валюту и цену.
             if (
-                payload != "bubbles_10:" + user_id
+                pack is None
+                or payload_user_id != user_id
                 or payment.get("currency") != "XTR"
-                or payment.get("total_amount") != 1
+                or payment.get("total_amount") != pack["stars"]
                 or not charge_id
             ):
                 return {"ok": True}
 
+            # Начисляем пакет строго один раз.
+            with connect() as c:
+                c.execute("BEGIN IMMEDIATE")
+
+                existing = c.execute(
+                    """
+                    SELECT 1 FROM star_payments
+                    WHERE telegram_payment_charge_id = ?
+                    """,
+                    (charge_id,)
+                ).fetchone()
+
+                if not existing:
+                    player = c.execute(
+                        "SELECT user_id FROM players WHERE user_id = ?",
+                        (user_id,)
+                    ).fetchone()
+
+                    if not player:
+                        c.execute(
+                            """
+                            INSERT INTO players
+                                (user_id, username, coins, last_daily, created_at)
+                            VALUES (?, ?, 100, 0, ?)
+                            """,
+                            (user_id, username, now)
+                        )
+
+                    c.execute(
+                        """
+                        INSERT INTO star_payments
+                            (telegram_payment_charge_id, user_id,
+                             amount, coins, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (charge_id, user_id, pack["stars"], pack["coins"], now)
+                    )
+
+                    c.execute(
+                        "UPDATE players SET coins = coins + ? WHERE user_id = ?",
+                        (pack["coins"], user_id)
+                    )
+
+                    c.execute(
+                        """
+                        INSERT INTO transactions
+                            (user_id, kind, amount, created_at)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            user_id,
+                            "stars_purchase",
+                            pack["coins"],
+                            now
+                        )
+                    )
+
+            # Сообщаем игроку о покупке.
+            chat_id = message.get("chat", {}).get("id")
+            if chat_id:
+                await client.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={
+                        "chat_id": chat_id,
+                        "text": (
+                            f"🎉 Оплата получена! Начислено "
+                            f"{pack['coins']:,} Пузырьков за "
+                            f"{pack['stars']:,} Stars."
+                            .replace(",", " ")
+                            + "\nВозвращайся в «Бабл Подарки»!"
+                        )
+                    }
+                )
+
+            return {"ok": True}
             # Начисляем ровно один раз.
             with connect() as c:
                 c.execute("BEGIN IMMEDIATE")
