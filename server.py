@@ -850,18 +850,24 @@ async def telegram_webhook(request: Request):
     return {"ok": True}
 
 @app.on_event("startup")
+
 async def register_telegram_webhook():
     if not BOT_TOKEN:
         print("BOT_TOKEN не настроен — Telegram webhook не подключён")
         return
+
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post("https://api.telegram.org/bot" + BOT_TOKEN + "/setWebhook",                
-                       json={
-                           "url": "https://babl-gifts.onrender.com/telegram/webhook",
-                           "allowed_updates": ["message", "pre_checkout_query"]
-                       }
+            response = await client.post(
+                "https://api.telegram.org/bot" + BOT_TOKEN + "/setWebhook",
+                json={
+                    "url": "https://babl-gifts.onrender.com/telegram/webhook",
+                    "allowed_updates": ["message", "pre_checkout_query"]
+                }
+            )
+
             print("Результат подключения Telegram:", response.text)
             response.raise_for_status()
+
     except Exception as exc:
         print("Не удалось подключить Telegram webhook:", exc)
