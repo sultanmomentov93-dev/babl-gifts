@@ -1724,9 +1724,20 @@ document.getElementById("balancePlus").addEventListener("click", async function 
     packList.appendChild(packButton);
   });
 
-  modal.querySelector("#closeBubblePacks").addEventListener("click", function () {
+  
+  function closeBubblePacks() {
     overlay.remove();
-  });
+  }
+
+  modal.querySelector("#closeBubblePacks").addEventListener(
+    "click",
+    closeBubblePacks
+  );
+
+  modal.querySelector("#closeBubblePacksBottom").addEventListener(
+    "click",
+    closeBubblePacks
+  );
 
   overlay.addEventListener("click", function (event) {
     if (event.target === overlay) overlay.remove();
