@@ -1630,8 +1630,14 @@ document.getElementById("balancePlus").addEventListener("click", async function 
   const packList = modal.querySelector("#bubblePacks");
 
   packs.forEach(function (pack) {
+    
     const packButton = document.createElement("button");
+    packButton.type = "button";
+    packButton.className = "bubbles-pack";
 
+    if (pack.id === "500") {
+      packButton.classList.add("popular");
+    }
     packButton.style.cssText = `
       width:100%;padding:14px;border-radius:14px;
       border:1px solid #4c91ad;
