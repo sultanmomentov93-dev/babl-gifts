@@ -946,6 +946,7 @@ if (telegramUser) {
 }
 
 
+
 async function api(path, method = "GET", body = null) {
   const headers = {};
 
@@ -964,7 +965,16 @@ async function api(path, method = "GET", body = null) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.detail || "Не удалось выполнить действие");
+    const detail = data.detail;
+
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail !== undefined
+          ? JSON.stringify(detail)
+          : "Не удалось выполнить действие. Код: " + response.status;
+
+    throw new Error(message);
   }
 
   return data;
