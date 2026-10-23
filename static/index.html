@@ -1507,6 +1507,10 @@ loadGame();
       document.getElementById("tasksScreen").hidden = target !== "tasksScreen";
       document.getElementById("profileScreen").hidden = target !== "profileScreen";
       document.getElementById("collectionScreen").hidden = target !== "collectionScreen";
+      const adminScreen = document.getElementById("adminScreen");
+      if (adminScreen) {
+      adminScreen.hidden = target !== "adminScreen";
+      }
       buttons.forEach(function (item) {
         const active = item === button;
         item.classList.toggle("active", active);
