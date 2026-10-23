@@ -1416,7 +1416,10 @@ loadGame();
       if (coins && profileCoins) {
         profileCoins.textContent = coins.textContent;
       }
-
+      
+      if (target === "collectionScreen") {
+      loadGame();
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   });
