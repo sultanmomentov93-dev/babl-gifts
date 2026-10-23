@@ -1046,6 +1046,28 @@ async function loadGame() {
     console.error("Не удалось загрузить баланс:", error);
   }
 }
+  
+async function setupAdminPanel() {
+  const adminButton = document.getElementById("adminNavItem");
+  const adminScreen = document.getElementById("adminScreen");
+
+  if (!adminButton || !adminScreen) return;
+
+  adminButton.hidden = true;
+  adminScreen.hidden = true;
+
+  try {
+    // Сервер сам проверяет, является ли пользователь администратором.
+    await api("/api/admin/gifts");
+
+    adminButton.hidden = false;
+  } catch (error) {
+    adminButton.hidden = true;
+    adminScreen.hidden = true;
+  }
+}
+
+setupAdminPanel();
 
 async function loadAdminGifts() {
   const message = document.getElementById("adminMessage");
