@@ -1175,6 +1175,7 @@ document.getElementById("adminRefresh").addEventListener(
 );
   
 
+
 async function loadAdminStarsBalance() {
   const element = document.getElementById("adminStarsBalance");
   const button = document.getElementById("adminStarsRefresh");
@@ -1194,10 +1195,11 @@ async function loadAdminStarsBalance() {
 
     const balance = data.balance;
 
-    element.textContent =
-      typeof balance === "object"
-        ? JSON.stringify(balance)
-        : `${balance} ⭐`;
+    if (typeof balance === "object" && balance !== null) {
+      element.textContent = `${balance.amount ?? 0} ⭐`;
+    } else {
+      element.textContent = `${balance ?? 0} ⭐`;
+    }
   } catch (error) {
     console.error("Ошибка баланса Stars:", error);
     element.textContent = "Ошибка загрузки";
