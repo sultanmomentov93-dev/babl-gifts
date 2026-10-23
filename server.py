@@ -137,8 +137,10 @@ def state(authorization: Optional[str] = Header(default=None)):
             "items": ITEMS}
 
 
+
 @app.post("/api/buy-bubbles")
 async def buy_bubbles(
+    body: BubblePurchase,
     authorization: Optional[str] = Header(default=None)
 ):
     p = get_player(authorization)
@@ -146,25 +148,33 @@ async def buy_bubbles(
     if p["user_id"] == "demo-android-user":
         raise HTTPException(
             400,
-            "Открой игру через Telegram, чтобы покупать пузырьки."
+            "Открой игру через Telegram, чтобы покупать Пузырьки."
         )
 
     if not BOT_TOKEN:
         raise HTTPException(503, "BOT_TOKEN не настроен")
 
-    payload = "bubbles_10:" + p["user_id"]
+    pack = BUBBLE_PACKS.get(body.pack_id)
 
-    async with httpx.AsyncClient(timeout=15) as client:
+    if not pack:
+        raise HTTPException(400, "Неизвестный пакет Пузырьков")
+
+    payload = f"bubbles_{body.pack_id}:{p['user_id']}"
+
+    async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/createInvoiceLink",
             json={
-                "title": "10 Пузырьков",
-                "description": "Пакет из 10 игровых Пузырьков",
+                "title": f"{pack['coins']} Пузырьков",
+                "description": f"Пакет из {pack['coins']} игровых Пузырьков",
                 "payload": payload,
                 "provider_token": "",
                 "currency": "XTR",
                 "prices": [
-                    {"label": "10 Пузырьков", "amount": 1}
+                    {
+                        "label": f"{pack['coins']} Пузырьков",
+                        "amount": pack["stars"]
+                    }
                 ]
             }
         )
@@ -178,7 +188,9 @@ async def buy_bubbles(
 
     return {
         "ok": True,
-        "invoice_link": data["result"]
+        "invoice_link": data["result"],
+        "coins": pack["coins"],
+        "stars": pack["stars"]
     }
 @app.post("/api/daily")
 def daily(authorization: Optional[str] = Header(default=None)):
