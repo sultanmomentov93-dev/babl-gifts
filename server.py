@@ -312,6 +312,53 @@ class SendTelegramGift(BaseModel):
     telegram_gift_id: str
 
 
+@app.get("/api/admin/telegram-gifts")
+async def admin_telegram_gifts(
+    authorization: Optional[str] = Header(default=None)
+):
+    admin_id = os.getenv("ADMIN_ID", "").strip()
+
+    if not admin_id:
+        raise HTTPException(503, "ADMIN_ID не настроен")
+
+    if not authorization or not authorization.startswith("tma "):
+        raise HTTPException(401, "Открой игру через Telegram")
+
+    uid, _ = validate_init_data(authorization[4:])
+
+    if str(uid) != admin_id:
+        raise HTTPException(403, "Доступ только для администратора")
+
+    if not BOT_TOKEN:
+        raise HTTPException(503, "BOT_TOKEN не настроен")
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/getAvailableGifts"
+        )
+        data = response.json()
+
+    if not response.is_success or not data.get("ok"):
+        raise HTTPException(
+            502,
+            "Не удалось загрузить каталог подарков Telegram"
+        )
+
+    gifts = []
+    for gift in data.get("result", {}).get("gifts", []):
+        sticker = gift.get("sticker", {})
+        gifts.append({
+            "id": str(gift.get("id", "")),
+            "star_count": gift.get("star_count", 0),
+            "sticker_file_id": sticker.get("file_id", ""),
+            "emoji": sticker.get("emoji", "🎁"),
+            "remaining_count": gift.get("remaining_count"),
+            "total_count": gift.get("total_count")
+        })
+
+    return {"ok": True, "gifts": gifts}
+
+
 @app.post("/api/admin/gifts/send")
 async def send_telegram_gift(
     body: SendTelegramGift,
