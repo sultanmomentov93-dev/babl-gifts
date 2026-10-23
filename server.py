@@ -66,6 +66,13 @@ def init_db():
             user_id TEXT NOT NULL, prize_id TEXT NOT NULL, name TEXT NOT NULL,
             emoji TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
             created_at INTEGER NOT NULL)""")
+        c.execute("""CREATE TABLE IF NOT EXISTS star_payments (
+            telegram_payment_charge_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            coins INTEGER NOT NULL,
+            created_at INTEGER NOT NULL
+        )""")
 init_db()
 
 def validate_init_data(init_data: str):
