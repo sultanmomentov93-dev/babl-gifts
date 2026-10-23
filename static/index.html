@@ -950,14 +950,72 @@ async function api(path, method = "GET", body = null) {
 
 function render(data) {
   const player = data.player || data;
+
   if (player.coins !== undefined) {
     const balance = Number(player.coins).toLocaleString("ru-RU");
+
     coinsEl.textContent = balance;
     profileCoinsEl.textContent = balance;
+
     const rouletteCoinsEl = document.getElementById("rouletteCoins");
-    if (rouletteCoinsEl) rouletteCoinsEl.textContent = balance;
+    if (rouletteCoinsEl) {
+      rouletteCoinsEl.textContent = balance;
+    }
   }
+
   profileNameEl.textContent = playerNameEl.textContent;
+
+  // Отображаем подарки, сохранённые сервером.
+  renderPendingGifts(data.pending_gifts || []);
+}
+
+function renderPendingGifts(gifts) {
+  const container = document.getElementById("pendingGifts");
+  const message = document.getElementById("collectionMessage");
+
+  if (!container) return;
+
+  container.replaceChildren();
+
+  if (!Array.isArray(gifts) || gifts.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "collection-empty";
+    empty.textContent =
+      "Пока нет выигранных подарков 🫧 Попробуй бесплатную рулетку!";
+    container.appendChild(empty);
+
+    if (message) message.textContent = "";
+    return;
+  }
+
+  gifts.forEach(function (gift) {
+    const card = document.createElement("div");
+    card.className = "collection-gift";
+
+    const emoji = document.createElement("div");
+    emoji.className = "collection-gift-emoji";
+    emoji.textContent = gift.emoji || "🎁";
+
+    const name = document.createElement("div");
+    name.className = "collection-gift-name";
+    name.textContent = gift.name || "Подарок";
+
+    const status = document.createElement("div");
+    status.className = "collection-gift-status";
+
+    if (gift.status === "pending") {
+      status.textContent = "⏳ Ожидает вывода";
+    } else {
+      status.textContent = gift.status || "Получен";
+    }
+
+    card.append(emoji, name, status);
+    container.appendChild(card);
+  });
+
+  if (message) {
+    message.textContent = "Всего подарков: " + gifts.length;
+  }
 }
 
 async function loadGame() {
