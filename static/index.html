@@ -1005,10 +1005,11 @@ function renderPendingGifts(gifts) {
   }
 
   const statusLabels = {
-    pending: "⏳ Ожидает обработки",
-    completed: "✅ Обработан",
-    withdrawn: "📨 Выведен"
-  };
+  pending: "⏳ Ожидает обработки",
+  approved: "✅ Одобрен",
+  completed: "✅ Обработан",
+  withdrawn: "📨 Выведен"
+};
 
   gifts.forEach(function (gift) {
     const card = document.createElement("div");
