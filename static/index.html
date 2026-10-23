@@ -1259,13 +1259,17 @@ if (gift.status === "approved") {
            telegram_gift_id: telegramGiftId
          });
 
+          
           overlay.remove();
+
+          // Обновляем баланс и коллекцию подарков с сервера.
+          await loadGame();
 
           alert(
             "✅ " + (result.message || "Подарок отправлен!") +
             (result.notification_sent
-              ? "\nИгрок также получил сообщение."
-              : "\nУведомление игроку не доставлено.")
+            ? "\nИгрок также получил сообщение."
+            : "\nУведомление игроку не доставлено.")
           );
 
           await loadAdminGifts();
