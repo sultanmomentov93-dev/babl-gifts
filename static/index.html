@@ -1377,10 +1377,46 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
   });
 });
 
-document.getElementById("balancePlus").addEventListener("click", function () {
-  alert("🌟 Пополнение Пузырьков через Telegram Stars скоро появится!");
-});
 
+document.getElementById("balancePlus").addEventListener("click", async function () {
+  const button = document.getElementById("balancePlus");
+
+  if (!tg.initData) {
+    alert("Открой игру через Telegram, чтобы покупать Пузырьки.");
+    return;
+  }
+
+  if (typeof tg.openInvoice !== "function") {
+    alert("Оплата недоступна в этой версии Telegram. Обнови Telegram и попробуй снова.");
+    return;
+  }
+
+  button.disabled = true;
+
+  try {
+    const result = await api("/api/buy-bubbles", "POST");
+
+    if (!result.invoice_link) {
+      throw new Error("Сервер не вернул ссылку на оплату.");
+    }
+
+    tg.openInvoice(result.invoice_link, async function (status) {
+      if (status === "paid") {
+        await loadGame();
+        alert("🎉 Оплата подтверждена! Проверяем твой баланс.");
+      } else if (status === "cancelled") {
+        console.log("Пользователь отменил оплату.");
+      } else if (status === "failed") {
+        alert("Не удалось выполнить оплату. Попробуй ещё раз.");
+      }
+
+      button.disabled = false;
+    });
+  } catch (error) {
+    alert("Не удалось открыть оплату:\n" + error.message);
+    button.disabled = false;
+  }
+});
 
 
 
