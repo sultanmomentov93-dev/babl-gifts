@@ -298,6 +298,7 @@ def admin_list_gifts(
     return {"ok": True, "gifts": [dict(row) for row in rows]}
 
 
+
 @app.post("/api/admin/gifts/status")
 def admin_update_gift_status(
     body: GiftStatusUpdate,
@@ -322,11 +323,13 @@ def admin_update_gift_status(
             "Допустимые статусы: approved, withdrawn"
         )
 
+    # Проверяем заявку и сохраняем новый статус.
     with connect() as c:
-        gift = c.execute(
-            "SELECT id, status FROM pending_gifts WHERE id=?",
-            (body.gift_id,)
-        ).fetchone()
+        gift = c.execute("""
+            SELECT id, user_id, name, status
+            FROM pending_gifts
+            WHERE id=?
+        """, (body.gift_id,)).fetchone()
 
         if not gift:
             raise HTTPException(404, "Подарок не найден")
@@ -334,13 +337,13 @@ def admin_update_gift_status(
         if body.status == "approved" and gift["status"] != "pending":
             raise HTTPException(
                 400,
-                "Одобрить можно только подарок со статусом pending"
+                "Одобрить можно только ожидающий обработки подарок"
             )
 
         if body.status == "withdrawn" and gift["status"] != "approved":
             raise HTTPException(
                 400,
-                "Вывести можно только предварительно одобренный подарок"
+                "Отметить выведенным можно только одобренный подарок"
             )
 
         c.execute(
@@ -348,10 +351,53 @@ def admin_update_gift_status(
             (body.status, body.gift_id)
         )
 
+        player_id = gift["user_id"]
+        gift_name = gift["name"]
+
+    # Готовим сообщение игроку.
+    if body.status == "approved":
+        message = (
+            f"✅ Твой подарок «{gift_name}» одобрен администратором!\n\n"
+            "Следи за обновлениями в игре «Бабл Подарки»."
+        )
+    else:
+        message = (
+            f"🎁 Подарок «{gift_name}» отмечен администратором как отправленный.\n\n"
+            "Проверь свой аккаунт Telegram!"
+        )
+
+    # Отправляем уведомление. Ошибка Telegram не отменяет статус.
+    notification_sent = False
+    bot_token = BOT_TOKEN.strip()
+
+    if bot_token:
+        try:
+            with httpx.Client(timeout=10) as client:
+                response = client.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                    json={
+                        "chat_id": player_id,
+                        "text": message
+                    }
+                )
+                result = response.json()
+                notification_sent = (
+                    response.is_success and result.get("ok") is True
+                )
+        except Exception as exc:
+            print("Ошибка уведомления игрока:", exc)
+
+    if not notification_sent:
+        print(
+            f"Не удалось отправить уведомление игроку {player_id} "
+            f"о подарке {body.gift_id}"
+        )
+
     return {
         "ok": True,
         "gift_id": body.gift_id,
-        "status": body.status
+        "status": body.status,
+        "notification_sent": notification_sent
     }
 
 @app.post("/telegram/webhook")
