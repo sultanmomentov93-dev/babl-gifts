@@ -127,6 +127,47 @@ def state(authorization: Optional[str] = Header(default=None)):
             "pending_gifts": pending_gifts, "daily_available": now - p["last_daily"] >= 86400,
             "items": ITEMS}
 
+@app.post("/api/buy-bubbles")
+async def buy_bubbles(
+    authorization: Optional[str] = Header(default=None)
+):
+    p = get_player(authorization)
+
+    if p["user_id"] == "demo-android-user":
+        raise HTTPException(
+            400,
+            "Открой игру через Telegram, чтобы покупать пузырьки."
+        )
+
+    if not BOT_TOKEN:
+        raise HTTPException(503, "BOT_TOKEN не настроен")
+
+    payload = "bubbles_10:" + p["user_id"]
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendInvoice",
+            json={
+                "chat_id": p["user_id"],
+                "title": "10 Пузырьков",
+                "description": "Пакет из 10 игровых Пузырьков",
+                "payload": payload,
+                "provider_token": "",
+                "currency": "XTR",
+                "prices": [
+                    {"label": "10 Пузырьков", "amount": 1}
+                ]
+            }
+        )
+        data = response.json()
+
+    if not response.is_success or not data.get("ok"):
+        raise HTTPException(
+            502,
+            data.get("description", "Не удалось создать счёт Telegram")
+        )
+
+    return {"ok": True, "message": "Счёт отправлен в чат с ботом"}
 @app.post("/api/daily")
 def daily(authorization: Optional[str] = Header(default=None)):
     p = get_player(authorization)
