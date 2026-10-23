@@ -1397,7 +1397,7 @@ loadGame();
       document.getElementById("homeScreen").hidden = target !== "homeScreen";
       document.getElementById("tasksScreen").hidden = target !== "tasksScreen";
       document.getElementById("profileScreen").hidden = target !== "profileScreen";
-
+      document.getElementById("collectionScreen").hidden = target !== "collectionScreen";
       buttons.forEach(function (item) {
         const active = item === button;
         item.classList.toggle("active", active);
