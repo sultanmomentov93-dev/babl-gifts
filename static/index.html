@@ -1074,6 +1074,36 @@ async function setupAdminPanel() {
     adminScreen.hidden = true;
   }
 }
+  
+async function loadAdminStarsBalance() {
+  const balanceElement = document.getElementById("adminStarsBalance");
+  const refreshButton = document.getElementById("adminStarsRefresh");
+
+  if (!balanceElement) return;
+
+  balanceElement.textContent = "Загрузка...";
+
+  try {
+    const data = await api("/api/admin/stars-balance");
+
+    if (!data || !data.ok) {
+      throw new Error("Не удалось получить баланс");
+    }
+
+    const balance = data.balance;
+    balanceElement.textContent =
+      typeof balance === "object"
+        ? JSON.stringify(balance)
+        : `${balance} ⭐`;
+  } catch (error) {
+    console.error("Ошибка баланса Stars:", error);
+    balanceElement.textContent = "Не удалось загрузить";
+  }
+}
+
+document
+  .getElementById("adminStarsRefresh")
+  ?.addEventListener("click", loadAdminStarsBalance);
 
 setupAdminPanel();
 
