@@ -265,6 +265,94 @@ async def telegram_available_gifts(
             for gift in gifts
         ],
     }
+    
+class GiftStatusUpdate(BaseModel):
+    gift_id: int
+    status: str
+
+
+@app.get("/api/admin/gifts")
+def admin_list_gifts(
+    authorization: Optional[str] = Header(default=None)
+):
+    admin_id = os.getenv("ADMIN_ID", "").strip()
+
+    if not admin_id:
+        raise HTTPException(503, "ADMIN_ID не настроен")
+
+    if not authorization or not authorization.startswith("tma "):
+        raise HTTPException(401, "Открой игру через Telegram")
+
+    uid, _ = validate_init_data(authorization[4:])
+
+    if uid != admin_id:
+        raise HTTPException(403, "Доступ только для администратора")
+
+    with connect() as c:
+        rows = c.execute("""
+            SELECT id, user_id, prize_id, name, emoji, status, created_at
+            FROM pending_gifts
+            ORDER BY id DESC
+        """).fetchall()
+
+    return {"ok": True, "gifts": [dict(row) for row in rows]}
+
+
+@app.post("/api/admin/gifts/status")
+def admin_update_gift_status(
+    body: GiftStatusUpdate,
+    authorization: Optional[str] = Header(default=None)
+):
+    admin_id = os.getenv("ADMIN_ID", "").strip()
+
+    if not admin_id:
+        raise HTTPException(503, "ADMIN_ID не настроен")
+
+    if not authorization or not authorization.startswith("tma "):
+        raise HTTPException(401, "Открой игру через Telegram")
+
+    uid, _ = validate_init_data(authorization[4:])
+
+    if uid != admin_id:
+        raise HTTPException(403, "Доступ только для администратора")
+
+    if body.status not in ("approved", "withdrawn"):
+        raise HTTPException(
+            400,
+            "Допустимые статусы: approved, withdrawn"
+        )
+
+    with connect() as c:
+        gift = c.execute(
+            "SELECT id, status FROM pending_gifts WHERE id=?",
+            (body.gift_id,)
+        ).fetchone()
+
+        if not gift:
+            raise HTTPException(404, "Подарок не найден")
+
+        if body.status == "approved" and gift["status"] != "pending":
+            raise HTTPException(
+                400,
+                "Одобрить можно только подарок со статусом pending"
+            )
+
+        if body.status == "withdrawn" and gift["status"] != "approved":
+            raise HTTPException(
+                400,
+                "Вывести можно только предварительно одобренный подарок"
+            )
+
+        c.execute(
+            "UPDATE pending_gifts SET status=? WHERE id=?",
+            (body.status, body.gift_id)
+        )
+
+    return {
+        "ok": True,
+        "gift_id": body.gift_id,
+        "status": body.status
+    }
 
 @app.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
