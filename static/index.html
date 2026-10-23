@@ -1205,6 +1205,41 @@ document.getElementById("adminRefresh").addEventListener(
 );
   
 
+async function loadAdminStarsBalance() {
+  const element = document.getElementById("adminStarsBalance");
+  const button = document.getElementById("adminStarsRefresh");
+
+  if (!element) return;
+
+  element.textContent = "Загрузка...";
+
+  if (button) button.disabled = true;
+
+  try {
+    const data = await api("/api/admin/stars-balance");
+
+    if (!data || !data.ok) {
+      throw new Error("Не удалось получить баланс");
+    }
+
+    const balance = data.balance;
+
+    element.textContent =
+      typeof balance === "object"
+        ? JSON.stringify(balance)
+        : `${balance} ⭐`;
+  } catch (error) {
+    console.error("Ошибка баланса Stars:", error);
+    element.textContent = "Ошибка загрузки";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+document.getElementById("adminStarsRefresh")?.addEventListener(
+  "click",
+  loadAdminStarsBalance
+);
 let busy = false;
 
 async function performTask(path, successText) {
