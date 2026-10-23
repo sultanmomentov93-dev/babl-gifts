@@ -43,6 +43,15 @@ ROULETTE_PRIZES = [
 ]
 PRIZE_BY_ID = {p["id"]: p for p in ROULETTE_PRIZES}
 
+BUBBLE_PACKS = {
+    "100": {"coins": 100, "stars": 10},
+    "500": {"coins": 500, "stars": 50},
+    "1000": {"coins": 1000, "stars": 100},
+    "2500": {"coins": 2500, "stars": 250},
+    "5000": {"coins": 5000, "stars": 500},
+    "10000": {"coins": 10000, "stars": 1000},
+}
+
 def connect():
     c = sqlite3.connect(DB_PATH, timeout=15)
     c.row_factory = sqlite3.Row
