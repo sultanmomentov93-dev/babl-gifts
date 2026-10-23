@@ -51,6 +51,8 @@ BUBBLE_PACKS = {
     "5000": {"coins": 5000, "stars": 500},
     "10000": {"coins": 10000, "stars": 1000},
 }
+class BubblePurchase(BaseModel):
+    pack_id: str
 
 def connect():
     c = sqlite3.connect(DB_PATH, timeout=15)
