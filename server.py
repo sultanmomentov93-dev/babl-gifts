@@ -504,7 +504,7 @@ def admin_update_gift_status(
 
     if uid != admin_id:
         raise HTTPException(403, "Доступ только для администратора")
-
+        
     if body.status != "approved":
     raise HTTPException(
         400,
