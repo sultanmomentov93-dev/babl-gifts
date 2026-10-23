@@ -687,22 +687,166 @@ def admin_update_gift_status(
         "notification_sent": notification_sent
     }
 
+
 @app.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
     update = await request.json()
-    message = update.get("message", {})
-    text = message.get("text", "")
-    chat = message.get("chat", {})
-    chat_id = chat.get("id")
-    if text == "/start" and chat_id:
-        keyboard = {"inline_keyboard": [[{"text": "🎁 Открыть Бабл Подарки",
-                                          "web_app": {"url": "https://babl-gifts.onrender.com"}}]]}
-        payload = {"chat_id": chat_id,
-                   "text": "Привет! 👋 Добро пожаловать в «Бабл Подарки»!\n\nОткрывай виртуальные коробки, собирай подарки и забирай ежедневные монеты. 🎁",
-                   "reply_markup": keyboard}
-        async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json=payload)
+
+    async with httpx.AsyncClient(timeout=15) as client:
+
+        # 1. Telegram спрашивает, можно ли провести оплату.
+        query = update.get("pre_checkout_query")
+
+        if query:
+            payload = query.get("invoice_payload", "")
+            user_id = str(query.get("from", {}).get("id", ""))
+
+            valid = (
+                payload == "bubbles_10:" + user_id
+                and query.get("currency") == "XTR"
+                and query.get("total_amount") == 1
+            )
+
+            response = await client.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/answerPreCheckoutQuery",
+                json={
+                    "pre_checkout_query_id": query["id"],
+                    "ok": valid,
+                    **(
+                        {}
+                        if valid
+                        else {
+                            "error_message":
+                                "Счёт недействителен. Создай новый."
+                        }
+                    )
+                }
+            )
             response.raise_for_status()
+            return {"ok": True}
+
+        # 2. Telegram подтвердил успешную оплату.
+        message = update.get("message", {})
+        payment = message.get("successful_payment")
+
+        if payment:
+            telegram_user = message.get("from", {})
+            user_id = str(telegram_user.get("id", ""))
+            payload = payment.get("invoice_payload", "")
+            charge_id = payment.get("telegram_payment_charge_id", "")
+            username = (
+                telegram_user.get("username")
+                or telegram_user.get("first_name")
+                or "Игрок"
+            )
+            now = int(time.time())
+
+            # Проверяем, что оплачен именно наш пакет.
+            if (
+                payload != "bubbles_10:" + user_id
+                or payment.get("currency") != "XTR"
+                or payment.get("total_amount") != 1
+                or not charge_id
+            ):
+                return {"ok": True}
+
+            # Начисляем ровно один раз.
+            with connect() as c:
+                c.execute("BEGIN IMMEDIATE")
+
+                existing = c.execute(
+                    """
+                    SELECT 1 FROM star_payments
+                    WHERE telegram_payment_charge_id = ?
+                    """,
+                    (charge_id,)
+                ).fetchone()
+
+                if not existing:
+                    player = c.execute(
+                        "SELECT user_id FROM players WHERE user_id = ?",
+                        (user_id,)
+                    ).fetchone()
+
+                    if not player:
+                        c.execute(
+                            """
+                            INSERT INTO players
+                                (user_id, username, coins, last_daily, created_at)
+                            VALUES (?, ?, 100, 0, ?)
+                            """,
+                            (user_id, username, now)
+                        )
+
+                    c.execute(
+                        """
+                        INSERT INTO star_payments
+                            (telegram_payment_charge_id, user_id,
+                             amount, coins, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (charge_id, user_id, 1, 10, now)
+                    )
+
+                    c.execute(
+                        "UPDATE players SET coins = coins + 10 WHERE user_id = ?",
+                        (user_id,)
+                    )
+
+                    c.execute(
+                        """
+                        INSERT INTO transactions
+                            (user_id, kind, amount, created_at)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (user_id, "stars_purchase", 10, now)
+                    )
+
+            # Уведомляем игрока. Начисление уже сохранено в базе.
+            chat_id = message.get("chat", {}).get("id")
+            if chat_id:
+                await client.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={
+                        "chat_id": chat_id,
+                        "text":
+                            "🎉 Оплата получена! Тебе начислено 10 Пузырьков. "
+                            "Возвращайся в «Бабл Подарки»!"
+                    }
+                )
+
+            return {"ok": True}
+
+        # 3. Обычная команда /start — оставляем как раньше.
+        text = message.get("text", "")
+        chat = message.get("chat", {})
+        chat_id = chat.get("id")
+
+        if text == "/start" and chat_id:
+            keyboard = {
+                "inline_keyboard": [[
+                    {
+                        "text": "🎁 Открыть Бабл Подарки",
+                        "web_app": {
+                            "url": "https://babl-gifts.onrender.com"
+                        }
+                    }
+                ]]
+            }
+
+            response = await client.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text":
+                        "Привет! 👋 Добро пожаловать в «Бабл Подарки»!\n\n"
+                        "Открывай виртуальные коробки, собирай подарки "
+                        "и забирай ежедневные монеты. 🎁",
+                    "reply_markup": keyboard
+                }
+            )
+            response.raise_for_status()
+
     return {"ok": True}
 
 @app.on_event("startup")
