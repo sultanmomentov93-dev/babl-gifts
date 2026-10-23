@@ -1495,7 +1495,12 @@ document.getElementById("balancePlus").addEventListener("click", async function 
           }
         });
       } catch (error) {
-        alert("Не удалось открыть оплату:\n" + error.message);
+        const message = error?.message
+          ? error.message
+          : JSON.stringify(error);
+
+        alert("Ошибка оплаты:\n" + message);
+        console.error("Ошибка покупки Пузырьков:", error);
         packButton.disabled = false;
         packButton.innerHTML =
           `<span>🫧 ${pack.coins}</span><span>⭐ ${pack.stars}</span>`;
