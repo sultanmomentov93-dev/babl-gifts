@@ -255,9 +255,6 @@ async def admin_stars_balance(
     except httpx.HTTPError:
         raise HTTPException(502, "Ошибка связи с Telegram")
  
-@app.get("/api/admin/stars-balance")
-
-
 @app.get("/api/telegram/gifts")
 async def telegram_available_gifts(
     authorization: Optional[str] = Header(default=None)
