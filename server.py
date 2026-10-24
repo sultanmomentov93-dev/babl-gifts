@@ -278,6 +278,54 @@ def daily(authorization: Optional[str] = Header(default=None)):
         "reward": reward,
         "message": f"🎉 День {day} из 30! Ты получил +{reward} Пузырьков!"
     }
+    
+@app.get("/api/daily-status")
+def daily_status(authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    user_id = p["user_id"]
+
+    now = int(time.time())
+    today = time.strftime("%Y-%m-%d", time.gmtime(now))
+    yesterday = time.strftime("%Y-%m-%d", time.gmtime(now - 86400))
+
+    with connect() as c:
+        c.execute(
+            """INSERT OR IGNORE INTO daily_streaks
+               (user_id, current_day, last_claim_date)
+               VALUES (?, 0, '')""",
+            (user_id,)
+        )
+
+        row = c.execute(
+            """SELECT current_day, last_claim_date
+               FROM daily_streaks WHERE user_id=?""",
+            (user_id,)
+        ).fetchone()
+
+    last_day = row["current_day"]
+    last_date = row["last_claim_date"]
+
+    if last_date == today:
+        next_day = last_day
+        claimed_today = True
+    elif last_date == yesterday:
+        next_day = last_day + 1
+        claimed_today = False
+    else:
+        next_day = 1
+        claimed_today = False
+
+    if next_day > 30:
+        next_day = 1
+
+    return {
+        "day": next_day,
+        "last_day": last_day,
+        "total_days": 30,
+        "claimed_today": claimed_today,
+        "reward": DAILY_REWARDS[next_day - 1],
+        "rewards": DAILY_REWARDS
+    }
 @app.post("/api/open-box")
 def open_box(authorization: Optional[str] = Header(default=None)):
     p = get_player(authorization)
