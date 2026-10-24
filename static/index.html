@@ -1763,6 +1763,61 @@ function renderPendingGifts(gifts) {
     message.textContent = "Всего подарков: " + gifts.length;
   }
 }
+  
+function renderInventory(items) {
+  const container = document.getElementById("pendingGifts");
+  const message = document.getElementById("collectionMessage");
+
+  if (!container) return;
+
+  // Не удаляем подарки, которые уже показала рулетка
+  container.querySelectorAll(".inventory-gift").forEach(function (card) {
+    card.remove();
+  });
+
+  container.querySelectorAll(".collection-empty").forEach(function (card) {
+    card.remove();
+  });
+
+  if (!Array.isArray(items) || items.length === 0) {
+    if (!container.querySelector(".collection-gift")) {
+      const empty = document.createElement("div");
+      empty.className = "collection-empty";
+      empty.textContent = "Пока нет предметов из коробок 🎁";
+      container.appendChild(empty);
+    }
+    return;
+  }
+
+  items.forEach(function (item) {
+    const card = document.createElement("div");
+    card.className = "collection-gift inventory-gift";
+
+    const emoji = document.createElement("div");
+    emoji.className = "collection-gift-emoji";
+    emoji.textContent = item.emoji || "🎁";
+
+    const name = document.createElement("div");
+    name.className = "collection-gift-name";
+    name.textContent = item.name || item.title || item.id || "Подарок";
+
+    const quantity = document.createElement("div");
+    quantity.className = "collection-gift-status";
+    quantity.textContent =
+      "В коллекции: " + (Number(item.quantity) || 1);
+
+    card.append(emoji, name, quantity);
+    container.appendChild(card);
+  });
+
+  if (message) {
+    const total = items.reduce(function (sum, item) {
+      return sum + (Number(item.quantity) || 1);
+    }, 0);
+
+    message.textContent = "Предметов из коробок: " + total;
+  }
+}
 
 async function loadGame() {
   try {
