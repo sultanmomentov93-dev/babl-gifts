@@ -202,87 +202,81 @@ async def buy_bubbles(
         "stars": pack["stars"]
     }
 
+
 DAILY_REWARDS = [
-    50, 75, 100, 125, 150, 200, 350,
-    100, 125, 150, 175, 200, 250, 450,
-    150, 175, 200, 225, 250, 300, 550,
-    200, 225, 250, 275, 300, 350, 650,
-    250, 300, 350, 400, 450, 500, 800,
-    300, 350, 400, 450, 500, 600, 1000,
-    350, 400, 450, 500, 600, 700, 1200,
-    400, 450, 500, 600, 700, 800, 1500,
-    500, 600, 700, 800, 900, 1000, 2000,
-    600, 700, 800, 900, 1000, 1200, 2500,
-    700, 800, 900, 1000, 1200, 1500, 3000,
-    800, 900, 1000, 1200, 1500, 1800, 3500,
-    1000, 1200, 1500, 1800, 2000, 2500, 5000,
-    1200, 1500, 1800, 2000, 2500, 3000, 7500,
-    1500, 2000, 2500, 3000, 4000, 5000, 10000
+    50, 75, 100, 100, 125, 150, 200,
+    100, 125, 150, 150, 200, 250, 300,
+    200, 250, 275, 300, 300, 350, 500,
+    400, 450, 500, 550, 600, 700, 800, 900, 1000
 ]
+
 
 @app.post("/api/daily")
 def daily(authorization: Optional[str] = Header(default=None)):
     p = get_player(authorization)
     user_id = p["user_id"]
-    today = time.strftime("%Y-%m-%d", time.gmtime())
+
     now = int(time.time())
+    today = time.strftime("%Y-%m-%d", time.gmtime(now))
+    yesterday = time.strftime("%Y-%m-%d", time.gmtime(now - 86400))
 
     with connect() as c:
         c.execute(
-            "INSERT OR IGNORE INTO daily_streaks "
-            "(user_id, current_day, last_claim_date) VALUES (?, 0, '')",
+            """INSERT OR IGNORE INTO daily_streaks
+               (user_id, current_day, last_claim_date)
+               VALUES (?, 0, '')""",
             (user_id,)
         )
 
         row = c.execute(
-            "SELECT current_day, last_claim_date "
-            "FROM daily_streaks WHERE user_id=?",
+            """SELECT current_day, last_claim_date
+               FROM daily_streaks WHERE user_id=?""",
             (user_id,)
         ).fetchone()
 
         if row["last_claim_date"] == today:
             raise HTTPException(
-                400, "Бонус уже получен. Возвращайся завтра!"
+                status_code=400,
+                detail="Бонус уже получен. Возвращайся завтра!"
             )
-
-        yesterday = time.strftime(
-            "%Y-%m-%d",
-            time.gmtime(now - 86400)
-        )
 
         if row["last_claim_date"] == yesterday:
             day = row["current_day"] + 1
         else:
             day = 1
 
-        if day > 100:
+        if day > 30:
             day = 1
 
         reward = DAILY_REWARDS[day - 1]
 
         c.execute(
-            "UPDATE players SET coins=coins+?, last_daily=? WHERE user_id=?",
+            """UPDATE players
+               SET coins = coins + ?, last_daily = ?
+               WHERE user_id = ?""",
             (reward, now, user_id)
         )
 
         c.execute(
-            "UPDATE daily_streaks "
-            "SET current_day=?, last_claim_date=? WHERE user_id=?",
+            """UPDATE daily_streaks
+               SET current_day = ?, last_claim_date = ?
+               WHERE user_id = ?""",
             (day, today, user_id)
         )
 
         c.execute(
-            "INSERT INTO transactions(user_id,kind,amount,created_at) "
-            "VALUES(?,?,?,?)",
+            """INSERT INTO transactions
+               (user_id, kind, amount, created_at)
+               VALUES (?, ?, ?, ?)""",
             (user_id, "daily_bonus", reward, now)
         )
 
     return {
         "ok": True,
         "day": day,
-        "total_days": 100,
+        "total_days": 30,
         "reward": reward,
-        "message": f"🎉 День {day} из 100! Ты получил +{reward} Пузырьков!"
+        "message": f"🎉 День {day} из 30! Ты получил +{reward} Пузырьков!"
     }
 @app.post("/api/open-box")
 def open_box(authorization: Optional[str] = Header(default=None)):
