@@ -2081,6 +2081,121 @@ async function performTask(path, successText) {
     busy = false;
   }
 }
+  
+const boxOverlay = document.getElementById("boxOverlay");
+const boxArt = document.getElementById("boxArt");
+const boxResult = document.getElementById("boxResult");
+const boxOpenButton = document.getElementById("openBoxButton");
+const boxMessage = document.getElementById("boxMessage");
+
+function openBoxWindow() {
+  boxOverlay.hidden = false;
+  boxArt.textContent = "🎁";
+  boxArt.classList.remove("shaking");
+  boxResult.hidden = true;
+  boxResult.textContent = "";
+  boxMessage.textContent = "Удача может улыбнуться тебе!";
+  boxOpenButton.disabled = false;
+  boxOpenButton.textContent = "Открыть за 30 🫧";
+}
+
+function closeBoxWindow() {
+  if (busy) return;
+  boxOverlay.hidden = true;
+}
+
+document.getElementById("closeBox").addEventListener(
+  "click",
+  closeBoxWindow
+);
+
+boxOverlay.addEventListener("click", function (event) {
+  if (event.target === boxOverlay) {
+    closeBoxWindow();
+  }
+});
+
+boxOpenButton.addEventListener("click", async function () {
+  if (busy) return;
+
+  busy = true;
+  boxOpenButton.disabled = true;
+  boxOpenButton.textContent = "Открываем…";
+  boxMessage.textContent = "🎁 Коробка готовит сюрприз…";
+  boxArt.classList.add("shaking");
+
+  try {
+    // Награду выбирает сервер, а не браузер
+    const result = await api("/api/open-box", "POST");
+
+    // Обновляем реальный баланс и инвентарь
+    const updated = await api("/api/state");
+    render(updated);
+
+    boxArt.classList.remove("shaking");
+    boxArt.textContent = "🎉";
+
+    const item = result.item || {};
+    const itemName = item.name || item.title || item.id || "Новый подарок";
+    const rarity = item.rarity || item.type || "";
+
+    boxResult.hidden = false;
+    boxResult.replaceChildren();
+
+    const title = document.createElement("div");
+    title.textContent = "✨ ТЕБЕ ВЫПАЛ ПОДАРОК! ✨";
+    title.style.fontWeight = "900";
+    title.style.marginBottom = "10px";
+
+    const name = document.createElement("div");
+    name.textContent = itemName;
+    name.style.fontSize = "21px";
+    name.style.fontWeight = "900";
+
+    const rarityText = document.createElement("div");
+    rarityText.textContent = rarity ? "Редкость: " + rarity : "🎁 Новый предмет коллекции";
+    rarityText.style.marginTop = "8px";
+
+    boxResult.append(title, name, rarityText);
+
+    boxMessage.textContent = "🎉 Подарок добавлен в твою коллекцию!";
+    boxOpenButton.textContent = "Открыть ещё за 30 🫧";
+    boxOpenButton.disabled = false;
+
+    // Эффект пузырьков
+    const rect = boxArt.getBoundingClientRect();
+
+    for (let i = 0; i < 16; i++) {
+      const bubble = document.createElement("span");
+      bubble.className = "bubble-fly";
+      bubble.textContent = "🫧";
+      bubble.style.left = rect.left + rect.width / 2 + "px";
+      bubble.style.top = rect.top + rect.height / 2 + "px";
+      bubble.style.setProperty("--fly-x", (Math.random() * 240 - 120) + "px");
+      bubble.style.setProperty("--fly-y", (-60 - Math.random() * 180) + "px");
+      document.body.appendChild(bubble);
+
+      bubble.addEventListener("animationend", function () {
+        bubble.remove();
+      });
+    }
+
+    const coinsElement = document.getElementById("coins");
+    if (coinsElement) {
+      coinsElement.classList.remove("coins-pop");
+      void coinsElement.offsetWidth;
+      coinsElement.classList.add("coins-pop");
+    }
+
+  } catch (error) {
+    boxArt.classList.remove("shaking");
+    boxMessage.textContent = error.message || "Не удалось открыть коробку.";
+    boxOpenButton.disabled = false;
+    boxOpenButton.textContent = "Попробовать снова";
+  } finally {
+    busy = false;
+  }
+});
 
 
 const DAILY_REWARDS = [
