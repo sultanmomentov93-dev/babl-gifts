@@ -84,6 +84,12 @@ def init_db():
             coins INTEGER NOT NULL,
             created_at INTEGER NOT NULL
         )""")
+        
+        c.execute("""CREATE TABLE IF NOT EXISTS daily_streaks (
+            user_id TEXT PRIMARY KEY,
+            current_day INTEGER NOT NULL DEFAULT 0,
+            last_claim_date TEXT NOT NULL DEFAULT ''
+        )""")
 init_db()
 
 def validate_init_data(init_data: str):
