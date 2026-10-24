@@ -1687,6 +1687,7 @@ async function api(path, method = "GET", body = null) {
   return data;
 }
 
+
 function render(data) {
   const player = data.player || data;
 
@@ -1704,10 +1705,12 @@ function render(data) {
 
   profileNameEl.textContent = playerNameEl.textContent;
 
-  // Отображаем подарки, сохранённые сервером.
+  // Подарки из рулетки
   renderPendingGifts(data.pending_gifts || []);
-}
 
+  // Предметы из открытых коробок
+  renderInventory(data.inventory || []);
+}
 
 function renderPendingGifts(gifts) {
   const container = document.getElementById("pendingGifts");
