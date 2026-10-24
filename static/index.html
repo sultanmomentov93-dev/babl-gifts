@@ -2070,14 +2070,21 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
   });
 });
 
+
 claimDailyButton.addEventListener("click", async function () {
   if (busy || dailyClaimedToday) return;
 
   claimDailyButton.disabled = true;
   claimDailyButton.textContent = "Получаем бонус…";
+  dailyStatus.classList.remove("success");
 
   try {
     const result = await api("/api/daily", "POST");
+
+    // Сохраняем текущее положение кнопки для эффекта пузырьков
+    const buttonRect = claimDailyButton.getBoundingClientRect();
+
+    // Получаем обновлённый баланс с сервера
     const updated = await api("/api/state");
     render(updated);
 
@@ -2086,11 +2093,57 @@ claimDailyButton.addEventListener("click", async function () {
 
     renderDailyCalendar();
 
+    // Поздравление
     dailyStatus.textContent =
-      result.message || ("🎉 Получено +" + result.reward + " Пузырьков!");
+      result.message ||
+      ("🎉 Получено +" + result.reward + " Пузырьков!");
+
+    dailyStatus.classList.add("success");
+
+    // Запускаем вылетающие пузырьки
+    for (let i = 0; i < 14; i++) {
+      const bubble = document.createElement("span");
+      bubble.className = "bubble-fly";
+      bubble.textContent = "🫧";
+
+      bubble.style.left =
+        (buttonRect.left + buttonRect.width / 2) + "px";
+      bubble.style.top =
+        (buttonRect.top + buttonRect.height / 2) + "px";
+
+      bubble.style.setProperty(
+        "--fly-x",
+        (Math.random() * 260 - 130) + "px"
+      );
+      bubble.style.setProperty(
+        "--fly-y",
+        (-70 - Math.random() * 220) + "px"
+      );
+
+      document.body.appendChild(bubble);
+      bubble.addEventListener("animationend", function () {
+        bubble.remove();
+      });
+    }
+
+    // Плавное увеличение числа Пузырьков на балансе
+    const coinsElement = document.getElementById("coins");
+
+    if (coinsElement) {
+      coinsElement.classList.remove("coins-pop");
+      void coinsElement.offsetWidth;
+      coinsElement.classList.add("coins-pop");
+
+      coinsElement.addEventListener("animationend", function () {
+        coinsElement.classList.remove("coins-pop");
+      }, { once: true });
+    }
 
   } catch (error) {
-    dailyStatus.textContent = error.message || "Не удалось получить бонус.";
+    dailyStatus.textContent =
+      error.message || "Не удалось получить бонус.";
+    dailyStatus.classList.remove("success");
+
     claimDailyButton.disabled = false;
     claimDailyButton.textContent = "Попробовать снова";
   }
