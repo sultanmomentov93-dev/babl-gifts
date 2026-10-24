@@ -2056,6 +2056,7 @@ dailyOverlay.addEventListener("click", function (event) {
   if (event.target === dailyOverlay) closeDailyWindow();
 });
 
+
 document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
   task.addEventListener("click", function () {
     const type = task.dataset.task;
@@ -2063,7 +2064,7 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
     if (type === "daily") {
       openDailyWindow();
     } else if (type === "box") {
-      performTask("/api/open-box", "🎁 Коробка открыта!");
+      openBoxWindow();
     } else if (type === "collection") {
       document.querySelector('[data-screen="collectionScreen"]').click();
     }
