@@ -1322,6 +1322,31 @@ body {
       </div>
     </div>
   </section>
+  
+<div class="daily-overlay" id="dailyOverlay" hidden>
+  <section class="daily-modal" role="dialog"
+           aria-modal="true" aria-labelledby="dailyHeading">
+
+    <div class="daily-head">
+      <h2 id="dailyHeading">🎁 Ежедневный бонус</h2>
+      <button class="daily-close" id="closeDaily"
+              type="button" aria-label="Закрыть">×</button>
+    </div>
+
+    <p class="daily-subtitle">
+      Заходи каждый день, забирай Пузырьки и двигайся к награде
+      30-го дня! Не пропускай дни, чтобы не сбросить серию.
+    </p>
+
+    <div class="daily-grid" id="dailyGrid"></div>
+
+    <button class="daily-claim" id="claimDaily" type="button">
+      Забрать бонус
+    </button>
+
+    <div class="daily-status" id="dailyStatus"></div>
+  </section>
+</div>
 
   <div class="roulette-overlay" id="rouletteOverlay" hidden>
     <section class="roulette-modal" role="dialog" aria-modal="true" aria-labelledby="rouletteHeading">
