@@ -1036,6 +1036,132 @@ body {
     font-size: 12px;
   }
 }
+    
+/* Ежедневный бонус на 30 дней */
+.daily-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14px;
+  overflow-y: auto;
+  background: rgba(0, 10, 24, .86);
+  backdrop-filter: blur(9px);
+}
+
+.daily-modal {
+  width: 100%;
+  max-width: 460px;
+  margin: auto 0;
+  padding: 18px;
+  border: 2px solid #69eaff;
+  border-radius: 24px;
+  background: linear-gradient(160deg, #123c70, #101b48 80%);
+  color: #fff;
+  box-shadow: 0 0 28px #36cfff45;
+}
+
+.daily-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.daily-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.daily-close {
+  width: 40px;
+  min-width: 40px;
+  margin: 0;
+  padding: 5px;
+  border: 1px solid #ffffff40;
+  border-radius: 50%;
+  background: #ffffff15;
+  color: #fff;
+  font-size: 25px;
+}
+
+.daily-subtitle {
+  color: #c9eaff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.daily-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin: 16px 0;
+}
+
+.daily-day {
+  min-width: 0;
+  min-height: 83px;
+  margin: 0;
+  padding: 9px 3px;
+  border: 1px solid #ffffff28;
+  border-radius: 13px;
+  background: #ffffff0c;
+  color: #fff;
+  text-align: center;
+  font-size: 12px;
+}
+
+.daily-day strong {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 14px;
+}
+
+.daily-day .daily-amount {
+  display: block;
+  color: #a9f4ff;
+  font-weight: 800;
+}
+
+.daily-day.claimed {
+  border-color: #70e8a0;
+  background: #38d87825;
+}
+
+.daily-day.claimed .daily-amount {
+  color: #8dffb0;
+}
+
+.daily-day.current {
+  border: 2px solid #ffe66b;
+  background: #ffe66b20;
+  box-shadow: 0 0 12px #ffe66b25;
+}
+
+.daily-day.locked {
+  opacity: .58;
+}
+
+.daily-claim {
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 15px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #d5ff61, #78ffa5);
+  color: #123d2a;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.daily-status {
+  min-height: 20px;
+  margin-top: 12px;
+  color: #d5f5ff;
+  text-align: center;
+  font-size: 13px;
+}
 
 </style>
 </head>
