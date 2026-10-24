@@ -1232,6 +1232,102 @@ body {
   45% { transform: scale(1.25); }
   100% { transform: scale(1); }
 }
+    
+.box-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 10, 30, .88);
+  backdrop-filter: blur(10px);
+}
+
+.box-modal {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px 18px;
+  border: 2px solid #65eaff;
+  border-radius: 26px;
+  background: linear-gradient(155deg, #183e75, #151536);
+  color: white;
+  text-align: center;
+  box-shadow: 0 0 35px #42dfff45;
+}
+
+.box-modal h2 {
+  margin: 5px 25px 8px;
+}
+
+.box-description {
+  color: #c9eaff;
+  font-size: 14px;
+}
+
+.box-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ffffff40;
+  border-radius: 50%;
+  background: #ffffff12;
+  color: white;
+  font-size: 25px;
+}
+
+.box-art {
+  margin: 20px auto;
+  font-size: 100px;
+  filter: drop-shadow(0 0 18px #65dfff65);
+}
+
+.box-art.shaking {
+  animation: boxShake .65s ease-in-out infinite;
+}
+
+@keyframes boxShake {
+  0%, 100% { transform: rotate(0) scale(1); }
+  20% { transform: rotate(-9deg) scale(1.06); }
+  40% { transform: rotate(9deg) scale(1.1); }
+  60% { transform: rotate(-6deg) scale(1.06); }
+  80% { transform: rotate(6deg) scale(1.03); }
+}
+
+.box-open-button {
+  width: 100%;
+  padding: 15px;
+  border: 0;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #d5ff69, #78ffb1);
+  color: #123b36;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.box-open-button:disabled {
+  opacity: .65;
+}
+
+.box-message {
+  min-height: 20px;
+  color: #c9eaff;
+  font-size: 13px;
+}
+
+.box-result {
+  margin: 15px 0;
+  padding: 14px;
+  border: 1px solid #ffe785;
+  border-radius: 16px;
+  background: #ffe78518;
+  color: #fff1a6;
+  animation: dailySuccess .45s ease both;
+}
 
 </style>
 </head>
