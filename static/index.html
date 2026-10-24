@@ -1895,20 +1895,136 @@ async function performTask(path, successText) {
   }
 }
 
+
+const DAILY_REWARDS = [
+  50, 75, 100, 100, 125, 150, 200,
+  100, 125, 150, 150, 200, 250, 300,
+  200, 250, 275, 300, 300, 350, 500,
+  400, 450, 500, 550, 600, 700, 800,
+  900, 1000
+];
+
+const dailyOverlay = document.getElementById("dailyOverlay");
+const dailyGrid = document.getElementById("dailyGrid");
+const dailyStatus = document.getElementById("dailyStatus");
+const claimDailyButton = document.getElementById("claimDaily");
+
+let dailyClaimedToday = false;
+let dailyCurrentDay = 1;
+
+function renderDailyCalendar() {
+  dailyGrid.innerHTML = "";
+
+  DAILY_REWARDS.forEach(function (reward, index) {
+    const day = index + 1;
+    const card = document.createElement("div");
+
+    card.className = "daily-day";
+
+    if (day < dailyCurrentDay) {
+      card.classList.add("claimed");
+    } else if (day === dailyCurrentDay) {
+      card.classList.add("current");
+    } else {
+      card.classList.add("locked");
+    }
+
+    const dayTitle = document.createElement("strong");
+    dayTitle.textContent = "День " + day;
+
+    const amount = document.createElement("span");
+    amount.className = "daily-amount";
+    amount.textContent = "🫧 " + reward;
+
+    card.appendChild(dayTitle);
+    card.appendChild(amount);
+
+    if (day < dailyCurrentDay) {
+      const mark = document.createElement("span");
+      mark.textContent = "✓ Получено";
+      card.appendChild(mark);
+    } else if (day === dailyCurrentDay) {
+      const mark = document.createElement("span");
+      mark.textContent = "Текущий";
+      card.appendChild(mark);
+    } else {
+      const mark = document.createElement("span");
+      mark.textContent = "🔒";
+      card.appendChild(mark);
+    }
+
+    dailyGrid.appendChild(card);
+  });
+
+  if (dailyClaimedToday) {
+    claimDailyButton.disabled = true;
+    claimDailyButton.textContent = "✓ Бонус уже получен";
+    dailyStatus.textContent = "Следующий бонус будет доступен завтра.";
+  } else {
+    claimDailyButton.disabled = false;
+    claimDailyButton.textContent = "Забрать бонус · День " + dailyCurrentDay;
+    dailyStatus.textContent =
+      "Сегодня ты можешь получить " +
+      DAILY_REWARDS[dailyCurrentDay - 1] + " Пузырьков.";
+  }
+}
+
+function openDailyWindow() {
+  dailyOverlay.hidden = false;
+  renderDailyCalendar();
+}
+
+function closeDailyWindow() {
+  dailyOverlay.hidden = true;
+}
+
+document.getElementById("closeDaily").addEventListener(
+  "click", closeDailyWindow
+);
+
+dailyOverlay.addEventListener("click", function (event) {
+  if (event.target === dailyOverlay) closeDailyWindow();
+});
+
 document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
   task.addEventListener("click", function () {
     const type = task.dataset.task;
+
     if (type === "daily") {
-      performTask("/api/daily", "🎉 Ежедневный бонус получен!");
+      openDailyWindow();
     } else if (type === "box") {
       performTask("/api/open-box", "🎁 Коробка открыта!");
-        } else if (type === "collection") {
+    } else if (type === "collection") {
       document.querySelector('[data-screen="collectionScreen"]').click();
     }
   });
 });
 
+claimDailyButton.addEventListener("click", async function () {
+  if (busy || dailyClaimedToday) return;
 
+  claimDailyButton.disabled = true;
+  claimDailyButton.textContent = "Получаем бонус…";
+
+  try {
+    const result = await api("/api/daily", "POST");
+    const updated = await api("/api/state");
+    render(updated);
+
+    dailyCurrentDay = Number(result.day) || dailyCurrentDay;
+    dailyClaimedToday = true;
+
+    renderDailyCalendar();
+
+    dailyStatus.textContent =
+      result.message || ("🎉 Получено +" + result.reward + " Пузырьков!");
+
+  } catch (error) {
+    dailyStatus.textContent = error.message || "Не удалось получить бонус.";
+    claimDailyButton.disabled = false;
+    claimDailyButton.textContent = "Попробовать снова";
+  }
+});
 
 document.getElementById("balancePlus").addEventListener("click", async function () {
   const button = document.getElementById("balancePlus");
