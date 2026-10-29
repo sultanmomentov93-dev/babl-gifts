@@ -335,6 +335,32 @@ def ad_reward(authorization: Optional[str] = Header(default=None)):
         "reward": reward,
         "message": "Ты получил +5 Пузырьков!"
     }
+    
+@app.get("/api/ad-status")
+def ad_status(authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    user_id = p["user_id"]
+
+    now = int(time.time())
+    day_start = now - (now % 86400)
+
+    with connect() as c:
+        row = c.execute(
+            """SELECT COUNT(*) AS total FROM transactions
+               WHERE user_id = ? AND kind = ?
+               AND created_at >= ?""",
+            (user_id, "ad_reward", day_start)
+        ).fetchone()
+
+    watched = row["total"]
+    limit = 100
+
+    return {
+        "total": limit,
+        "watched": watched,
+        "remaining": max(0, limit - watched)
+    }
+
 
     
 @app.get("/api/daily-status")
