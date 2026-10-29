@@ -279,16 +279,32 @@ def daily(authorization: Optional[str] = Header(default=None)):
         "message": f"🎉 День {day} из 30! Ты получил +{reward} Пузырьков!"
     }
     
+
 @app.post("/api/ad-reward")
 def ad_reward(authorization: Optional[str] = Header(default=None)):
     p = get_player(authorization)
     user_id = p["user_id"]
     now = int(time.time())
     reward = 5
+    daily_limit = 100
+    day_start = now - (now % 86400)
 
     with connect() as c:
-        # Не позволяем повторно начислить награду
-        # чаще одного раза в минуту.
+        # Проверяем количество наград за текущие сутки
+        count = c.execute(
+            """SELECT COUNT(*) FROM transactions
+               WHERE user_id = ? AND kind = ?
+               AND created_at >= ?""",
+            (user_id, "ad_reward", day_start)
+        ).fetchone()[0]
+
+        if count >= daily_limit:
+            raise HTTPException(
+                status_code=429,
+                detail="Ты посмотрел все 100 реклам на сегодня. Возвращайся завтра!"
+            )
+
+        # Сохраняем паузу не менее 60 секунд
         last = c.execute(
             """SELECT created_at FROM transactions
                WHERE user_id = ? AND kind = ?
@@ -319,6 +335,7 @@ def ad_reward(authorization: Optional[str] = Header(default=None)):
         "reward": reward,
         "message": "Ты получил +5 Пузырьков!"
     }
+
     
 @app.get("/api/daily-status")
 def daily_status(authorization: Optional[str] = Header(default=None)):
