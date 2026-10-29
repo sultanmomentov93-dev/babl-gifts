@@ -2348,8 +2348,26 @@ dailyOverlay.addEventListener("click", function (event) {
 });
 
 
+const AD_BLOCK_ID = "56621";
+let adController = null;
+
+function getAdsGramController() {
+  if (!window.Adsgram) {
+    alert("Реклама пока загружается. Попробуй ещё раз.");
+    return null;
+  }
+
+  if (!adController) {
+    adController = window.Adsgram.init({
+      blockId: AD_BLOCK_ID
+    });
+  }
+
+  return adController;
+}
+
 document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
-  task.addEventListener("click", function () {
+  task.addEventListener("click", async function () {
     const type = task.dataset.task;
 
     if (type === "daily") {
@@ -2358,6 +2376,23 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
       openBoxWindow();
     } else if (type === "collection") {
       document.querySelector('[data-screen="collectionScreen"]').click();
+    } else if (type === "ad") {
+      const controller = getAdsGramController();
+      if (!controller) return;
+
+      try {
+        const result = await controller.show();
+
+        if (result.done === true && result.error !== true) {
+          alert("Реклама просмотрена! Сейчас начислим пузырьки.");
+          // Начисление подключим к серверу следующим шагом.
+        } else {
+          alert("Реклама не завершена. Награда не начислена.");
+        }
+      } catch (error) {
+        alert("Не удалось показать рекламу. Попробуй позже.");
+        console.error("AdsGram:", error);
+      }
     }
   });
 });
