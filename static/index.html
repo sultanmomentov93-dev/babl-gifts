@@ -2479,7 +2479,7 @@ function getAdsGramController() {
 }
 
 
-document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
+document.querySelectorAll(".task-card[data-task], .ad-promo-card[data-task]").forEach(function (task) {
   task.addEventListener("click", async function () {
     const type = task.dataset.task;
 
