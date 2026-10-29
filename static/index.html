@@ -1773,7 +1773,33 @@ async function api(path, method = "GET", body = null) {
 
   return data;
 }
+  
+async function updateAdPromo() {
+  const countEl = document.getElementById("adPromoCount");
+  const progressEl = document.getElementById("adPromoProgressFill");
 
+  if (!countEl || !progressEl) return;
+
+  try {
+    const status = await api("/api/ad-status");
+    const remaining = Math.max(0, Number(status.remaining) || 0);
+    const total = 100;
+    const watched = total - remaining;
+
+    countEl.textContent = `Осталось ${remaining} из ${total}`;
+    progressEl.style.width = `${(remaining / total) * 100}%`;
+
+    const card = document.getElementById("adPromoCard");
+    if (card) {
+      card.setAttribute("aria-label",
+        `Смотри рекламу. Осталось ${remaining} из ${total}`);
+      card.style.opacity = remaining === 0 ? "0.65" : "1";
+    }
+  } catch (error) {
+    console.error("Не удалось обновить счётчик рекламы:", error);
+    countEl.textContent = "Не удалось загрузить счётчик";
+  }
+}
 
 function render(data) {
   const player = data.player || data;
