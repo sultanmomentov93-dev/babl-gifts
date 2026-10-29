@@ -2384,6 +2384,7 @@ function getAdsGramController() {
   return adController;
 }
 
+
 document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
   task.addEventListener("click", async function () {
     const type = task.dataset.task;
@@ -2398,22 +2399,37 @@ document.querySelectorAll(".task-card[data-task]").forEach(function (task) {
       const controller = getAdsGramController();
       if (!controller) return;
 
+      task.style.pointerEvents = "none";
+
       try {
         const result = await controller.show();
 
-        if (result.done === true && result.error !== true) {
-          alert("Реклама просмотрена! Сейчас начислим пузырьки.");
-          // Начисление подключим к серверу следующим шагом.
+        if (result && result.done === true && result.error !== true) {
+          const reward = await api("/api/ad-reward", "POST");
+          const updated = await api("/api/state");
+
+          render(updated);
+
+          alert(
+            reward.message ||
+            "🎉 Ты получил +" + reward.reward + " Пузырьков!"
+          );
         } else {
           alert("Реклама не завершена. Награда не начислена.");
         }
       } catch (error) {
-        alert("Не удалось показать рекламу. Попробуй позже.");
+        alert(
+          error.message ||
+          "Не удалось получить награду. Попробуй позже."
+        );
         console.error("AdsGram:", error);
+      } finally {
+        task.style.pointerEvents = "";
       }
     }
   });
 });
+
 
 
 claimDailyButton.addEventListener("click", async function () {
