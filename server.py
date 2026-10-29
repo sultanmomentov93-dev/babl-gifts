@@ -279,6 +279,47 @@ def daily(authorization: Optional[str] = Header(default=None)):
         "message": f"🎉 День {day} из 30! Ты получил +{reward} Пузырьков!"
     }
     
+@app.post("/api/ad-reward")
+def ad_reward(authorization: Optional[str] = Header(default=None)):
+    p = get_player(authorization)
+    user_id = p["user_id"]
+    now = int(time.time())
+    reward = 5
+
+    with connect() as c:
+        # Не позволяем повторно начислить награду
+        # чаще одного раза в минуту.
+        last = c.execute(
+            """SELECT created_at FROM transactions
+               WHERE user_id = ? AND kind = ?
+               ORDER BY created_at DESC LIMIT 1""",
+            (user_id, "ad_reward")
+        ).fetchone()
+
+        if last and now - last["created_at"] < 60:
+            raise HTTPException(
+                status_code=429,
+                detail="Подожди немного перед следующим просмотром."
+            )
+
+        c.execute(
+            "UPDATE players SET coins = coins + ? WHERE user_id = ?",
+            (reward, user_id)
+        )
+
+        c.execute(
+            """INSERT INTO transactions
+               (user_id, kind, amount, created_at)
+               VALUES (?, ?, ?, ?)""",
+            (user_id, "ad_reward", reward, now)
+        )
+
+    return {
+        "ok": True,
+        "reward": reward,
+        "message": "Ты получил +5 Пузырьков!"
+    }
+    
 @app.get("/api/daily-status")
 def daily_status(authorization: Optional[str] = Header(default=None)):
     p = get_player(authorization)
